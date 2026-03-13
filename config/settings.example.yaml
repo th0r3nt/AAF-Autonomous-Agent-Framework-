@@ -59,7 +59,7 @@ rhythms:
 memory:
   chroma_db_path: "src/layer00_utils/chroma_db/"
   similarity_threshold: 0.43
-  kuzu_db_path: "src/layer00_utils/kuzu_db"
+  kuzu_db_path: "src/layer00_utils/kuzu_db/"
 
   embedding_model: 
     name: "BAAI/bge-m3"

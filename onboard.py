@@ -152,7 +152,7 @@ def setup_personality():
     print(f" - {C}config/personality/SOUL.md{W} (кто он и какие у него цели)")
     print(f" - {C}config/personality/COMMUNICATION_STYLE.md{W} (как он общается)")
     print(f" - {C}config/personality/EXAMPLES_OF_STYLE.md{W} (примеры его ответов)")
-    print(" - Советаю прочитать .md файлы из папки personality.example: там находятся рекомендации по структуре промптов.")
+    print(" - Советую прочитать .md файлы из папки personality.example: там находятся рекомендации по структуре промптов.")
     time.sleep(8) # Даем пользователю прочитать
 
 def download_models():

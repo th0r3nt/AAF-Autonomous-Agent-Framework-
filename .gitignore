@@ -17,6 +17,8 @@ logs/*
 
 **/chroma_db/
 **/kuzu_db/
+src/layer00_utils/kuzu_db
+chroma_db
 
 src/layer00_utils/telegram_sessions/
 
@@ -34,3 +36,7 @@ src/layer00_utils/phrases/*
 
 .DS_Store
 Thumbs.db
+TODO.md
+copy_all_code.py
+all_code.txt
+map.py
