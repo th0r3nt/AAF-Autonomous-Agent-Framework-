@@ -8,5 +8,7 @@ logs/
 src/layer01_datastate/graph_db/
 src/layer00_utils/chroma_db/
 src/layer00_utils/telegram_sessions/
+awakening_state.json
+awakening_state
 .git/
 .idea/

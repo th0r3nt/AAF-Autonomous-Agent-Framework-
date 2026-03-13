@@ -9,6 +9,8 @@ env/
 
 config/settings.yaml
 config/personality/
+awakening_state.json
+awakening_state
 
 logs/*
 !logs/.gitkeep
