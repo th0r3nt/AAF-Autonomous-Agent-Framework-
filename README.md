@@ -47,9 +47,9 @@
 
    ```bash
 
-   git clone https://github.com/your-username/AAF_release.git
+   git clone https://github.com/th0r3nt/AAF-Autonomous-Agent-Framework-
 
-   cd AAF_release
+   cd AAF-Autonomous-Agent-Framework-
 
    ```
 
