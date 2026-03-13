@@ -1,0 +1,93 @@
+identity:
+  # # Имя агента (используется в логах и БД)
+  agent_name: "AgentName" # Имя агента
+  admin_name: "AdminName" # Ваше имя или никнейм. Так агент будет называть вас в диалоге
+
+  # Ваш цифровой ID в Telegram. Нужен, чтобы агент узнавал хозяина.
+  admin_tg_id: 123456789 # Узнать свой ID можно в ботах: @userinfobot или @getmyid_bot
+
+
+llm:
+  model_name: "gemini-flash-latest"
+  available_models:
+    - "gemini-3.1-pro-high"
+    - "gemini-3.1-pro-preview"
+    - "gemini-flash-latest"
+    - "gemini-3-flash-preview"
+    - "gemini-3.1-flash-lite-preview"
+    - "gpt-5.4"
+    - "claude-opus-4-6"
+  temperature: 0.7
+  max_react_steps: 15 # Защита от бесконечного цикла вызова инструментов
+
+  limits:
+    # Защита контекста LLM
+    max_file_read_chars: 80000    # Чтение локального кода/файлов
+    max_web_read_chars: 15000     # Чтение веб-страниц (Jina Reader)
+    image_max_size: [1500, 1500]  # Разрешение сжатия картинок перед отправкой LLM
+
+  context_depth:
+      event_driven:
+        thoughts_limit: 3
+        actions_limit: 10
+        dialogue_limit: 30
+      proactivity:
+        thoughts_limit: 5
+        actions_limit: 20
+        dialogue_limit: 30
+      thoughts:
+        thoughts_limit: 10
+        actions_limit: 20
+        dialogue_limit: 40
+
+swarm:
+  minion_model: "gemini-3.1-flash-lite-preview"
+  max_minion_steps: 10
+
+rhythms:
+  # Как часто агент просыпается сам по себе
+  proactivity_interval_sec: 900
+  thoughts_interval_sec: 1800
+
+  min_proactivity_cooldown_sec: 180 # Минимальный интервал проактивности (защита бюджета)
+  reduction_medium_sec: 120 # Ускорение времени до вызова проактивности при входящих событиях уровня MEDIUM
+  reduction_low_sec: 60    # Ускорение времени до вызова проактивности при входящих событиях уровня LOW
+
+  telemetry_poll_sec: 60  # Интервал сбора метрик ПК
+  weather_poll_sec: 1800  # Интервал запросов к OpenWeather для получения погоды
+
+memory:
+  chroma_db_path: "src/layer00_utils/chroma_db/"
+  similarity_threshold: 0.43
+  kuzu_db_path: "src/layer00_utils/kuzu_db"
+
+  embedding_model: 
+    name: "BAAI/bge-m3"
+    local_path: "local_models/models--BAAI--bge-m3/snapshots/5617a9f61b028005a4858fdac845db406aefb181"
+
+  workspace_garbage_collector:
+    temp_files_ttl_hours: 48
+
+telegram:
+  agent_session_name: "agent_session"
+  agent_nickname: "username" # Без '@'
+  ignored_users: [708513, 777000] # Replies и Telegram
+
+hardware:
+  weather_city: "city" # Измените на ваш город
+  
+  # TTS
+  voice:
+    tts_voice: "ru-RU-SvetlanaNeural"
+    stt_model_path: "src/layer00_utils/vosk_model/vosk-model-small-ru-0.22"
+    sample_rate: 16000
+
+system:
+  logging_level: "INFO"
+  log_retention_days: 14
+
+  flags:
+    enable_proactivity: true            
+    enable_thoughts: true               
+    dump_llm_context: true # Отладка
+    headless_mode: true 

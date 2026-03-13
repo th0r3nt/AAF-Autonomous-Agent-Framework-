@@ -1,0 +1,30 @@
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: agent_core_db
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - agent_pg_data:/var/lib/postgresql/data
+
+  agent_core:
+    build: .
+    depends_on:
+      - postgres_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+      - ./workspace:/app/workspace
+      - ./logs:/app/logs
+      - ./src:/app/src
+      - ./local_models:/app/local_models
+      - ./config:/app/config
+
+volumes:
+  agent_pg_data:
