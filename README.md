@@ -82,7 +82,7 @@ python aaf_setup.py
 ### Шаг 5. Запуск
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 Всё! Ваш агент проснется, подключится к Telegram и начнет проактивно анализировать систему. Посмотреть логи можно командой: docker compose logs agent_core -f.

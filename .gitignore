@@ -26,6 +26,7 @@ local_models/
 src/layer00_utils/vosk_model/
 
 workspace/_data/
+!workspace/_data/.gitkeep
 workspace/temp/
 workspace/sandbox/sandbox_state.json
 

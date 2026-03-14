@@ -186,7 +186,7 @@ async def main():
     
     print(f"\n{G}УСТАНОВКА ЗАВЕРШЕНА!{W}")
     print(f"{Y}1. Настройте config/settings.yaml и config/personality/*.md{W}")
-    print(f"{Y}2. Запустите: {G}docker-compose up -d --build{W}\n")
+    print(f"{Y}2. Запустите: {G}docker compose up -d --build{W}\n")
 
 if __name__ == "__main__":
     asyncio.run(main())
