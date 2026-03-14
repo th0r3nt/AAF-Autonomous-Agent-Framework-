@@ -25,8 +25,8 @@ STOP_SYSTEM = Events.STOP_SYSTEM
 th0r3nt = None
 
 # >>>>> docker ps - проверка пульса
-# >>>>> docker-compose up -d --build
-# >>>>> docker-compose down - убить контейнеры
+# >>>>> docker compose up -d --build
+# >>>>> docker compose down - убить контейнеры
 # >>>>> docker compose logs agent_core -f - вывести логи
 
 

@@ -6,7 +6,7 @@ from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer01_datastate.sql_db.management.agent_actions import create_agent_action
 from src.layer01_datastate.sql_db.management.dialogue import create_dialogue_entry
-from src.layer03_brain.agent.skills.skills_configuration import skills_registry
+from src.layer03_brain.agent.skills.registry import skills_registry
 from src.layer03_brain.llm.client import client_openai, key_manager
 from src.layer03_brain.agent.engine.state import brain_state
 

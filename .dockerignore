@@ -4,9 +4,9 @@ venv
 .venv
 __pycache__
 .env
-workspace/
-logs/
-src/logs/
+chroma_db/
+telegram_sessions/
+kuzu_db
 
 TODO.md
 copy_all_code.py

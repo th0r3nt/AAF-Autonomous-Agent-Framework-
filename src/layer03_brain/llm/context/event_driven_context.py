@@ -11,7 +11,7 @@ from src.layer01_datastate.sql_db.management.long_term_tasks import get_all_task
 from src.layer01_datastate.sql_db.management.agent_actions import get_recent_agent_actions
 from src.layer01_datastate.event_bus.events import EventConfig
 from src.layer01_datastate.graph_db.graph_db_management import get_graph_rag_data
-from src.layer03_brain.agent.skills.skills import get_unread_tg_summary
+from src.layer03_brain.agent.skills.telegram.logic import get_unread_tg_summary
 from src.layer03_brain.llm.context.helpers import (
     _format_event, _extract_query_from_event, _safe_get, 
     _get_macro_architecture_map, _extract_graph_targets_from_event,

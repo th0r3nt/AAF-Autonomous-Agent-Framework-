@@ -2,7 +2,7 @@ import json
 import asyncio
 from src.layer00_utils.config_manager import config
 from src.layer03_brain.llm.client import client_openai, key_manager
-from src.layer03_brain.agent.skills.skills_configuration import skills_registry, openai_tools
+from src.layer03_brain.agent.skills.registry import skills_registry, openai_tools
 from src.layer04_swarm.tools.system_tools import system_tools_registry, system_tools_schemas
 
 SYBAGENT_MODEL = config.swarm.sybagent_model

@@ -9,7 +9,7 @@ from src.layer03_brain.llm.prompt.prompt_manager import prompt_manager
 from src.layer03_brain.llm.context.event_driven_context import build_event_driven_context
 from src.layer03_brain.llm.context.proactivity_context import build_proactivity_context
 from src.layer03_brain.llm.context.thoughts_context import build_thoughts_context
-from src.layer03_brain.agent.skills.skills_configuration import openai_tools
+from src.layer03_brain.agent.skills.registry import openai_tools
 from src.layer03_brain.agent.engine.react import run_react_loop
 
 LLM_TEMPERATURE = config.llm.temperature

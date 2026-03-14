@@ -10,7 +10,7 @@ from src.layer01_datastate.sql_db.management.dialogue import get_clear_recent_di
 from src.layer01_datastate.sql_db.management.long_term_tasks import get_all_tasks
 from src.layer01_datastate.sql_db.management.agent_actions import get_recent_agent_actions
 from src.layer01_datastate.graph_db.graph_db_management import explore_graph, get_associated_node_names
-from src.layer03_brain.agent.skills.skills import get_unread_tg_summary
+from src.layer03_brain.agent.skills.telegram.logic import get_unread_tg_summary
 from src.layer03_brain.llm.context.helpers import _safe_get, _get_macro_architecture_map, _extract_anchors_for_proactivity, SUPERNODES
 from src.layer03_brain.llm.client import key_manager
 from src.layer04_swarm.manager import swarm_manager
