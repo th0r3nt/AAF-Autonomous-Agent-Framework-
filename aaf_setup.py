@@ -101,7 +101,7 @@ system:
 
 def install_dependencies():
     print(f"{C}=== Шаг 0: Проверка зависимостей хоста ==={W}")
-    required = {"dotenv": "python-dotenv", "telethon": "telethon", "sentence_transformers": "sentence-transformers"}
+    required = {"dotenv": "python-dotenv", "telethon": "telethon", "sentence_transformers": "sentence-transformers", "pydantic": "pydantic", "yaml": "PyYAML"}
     missing = [pip_name for imp, pip_name in required.items() if subprocess.run([sys.executable, "-c", f"import {imp}"], capture_output=True).returncode != 0]
 
     if missing:
