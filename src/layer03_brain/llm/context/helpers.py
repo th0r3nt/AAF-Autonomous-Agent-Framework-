@@ -3,7 +3,7 @@ import re
 import asyncio
 import ast
 from pathlib import Path
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer01_datastate.vector_db.vector_db_management import get_all_entries_in_vector_db
 from src.layer01_datastate.graph_db.graph_db_management import get_all_node_names_async

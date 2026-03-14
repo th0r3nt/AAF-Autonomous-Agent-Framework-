@@ -1,5 +1,5 @@
 import asyncio
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer01_datastate.vector_db.vector_db_management import (
     raw_find_entries_in_vector_db, 

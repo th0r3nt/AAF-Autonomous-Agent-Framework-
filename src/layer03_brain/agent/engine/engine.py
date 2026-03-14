@@ -1,7 +1,7 @@
 import time
 import asyncio
 from dataclasses import dataclass, field
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.watchdog.watchdog import event_driven_module, proactivity_module, thoughts_module
 from src.layer01_datastate.event_bus.event_bus import event_bus

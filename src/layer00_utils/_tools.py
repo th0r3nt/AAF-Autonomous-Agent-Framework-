@@ -7,7 +7,7 @@ from src.layer00_utils.logger import system_logger
 from src.layer00_utils.workspace import workspace_manager
 from collections import deque
 import tiktoken
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 
 try:
     import mss

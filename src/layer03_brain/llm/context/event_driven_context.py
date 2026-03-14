@@ -1,5 +1,5 @@
 import asyncio
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.watchdog.watchdog import watchdog
 from src.layer00_utils.workspace import workspace_manager

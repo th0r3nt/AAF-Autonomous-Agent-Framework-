@@ -1,4 +1,4 @@
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.watchdog.watchdog import event_driven_module, proactivity_module, thoughts_module
 from src.layer00_utils._tools import token_tracker, count_tokens

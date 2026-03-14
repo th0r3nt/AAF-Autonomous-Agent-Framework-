@@ -3,9 +3,8 @@ import uuid
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.watchdog.watchdog import vector_db_module
 from src.layer00_utils.watchdog.watchdog_decorator import watchdog_decorator
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 
-# ИМПОРТИРУЕМ ИЗ ЯДРА
 from src.layer01_datastate.vector_db.vector_db import _get_col
 
 SIMILARITY_THRESHOLD = config.memory.similarity_threshold

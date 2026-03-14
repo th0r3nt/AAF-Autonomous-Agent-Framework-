@@ -1,12 +1,12 @@
 import json
 import asyncio
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer03_brain.llm.client import client_openai, key_manager
 from src.layer03_brain.agent.skills.skills_configuration import skills_registry, openai_tools
 from src.layer04_swarm.tools.system_tools import system_tools_registry, system_tools_schemas
 
-MINION_MODEL = config.swarm.minion_model
-MAX_MINION_STEPS = config.swarm.max_minion_steps
+SYBAGENT_MODEL = config.swarm.sybagent_model
+MAX_SYBAGENT_STEPS = config.swarm.max_sybagent_steps
 
 async def _execute_tool(subagent, tool_call):
     func_name = tool_call.function.name
@@ -56,13 +56,13 @@ async def run_subagent_react(subagent, task_query: str) -> str:
     ]
 
     steps = 0
-    while steps < MAX_MINION_STEPS:
+    while steps < MAX_SYBAGENT_STEPS:
         steps += 1
         client_openai.api_key = await key_manager.get_next_key()
 
         try:
             response = await client_openai.chat.completions.create(
-                model=MINION_MODEL,
+                model=SYBAGENT_MODEL,
                 messages=messages,
                 tools=allowed_schemas if allowed_schemas else None,
                 tool_choice="auto" if allowed_schemas else "none"

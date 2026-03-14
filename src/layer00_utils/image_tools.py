@@ -1,7 +1,7 @@
 import base64
 import io
 from PIL import Image
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 
 def compress_and_encode_image(image_path: str) -> str:

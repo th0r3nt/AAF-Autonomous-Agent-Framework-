@@ -4,7 +4,7 @@ import vosk
 import asyncio
 import wave
 from dotenv import load_dotenv
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer01_datastate.event_bus.event_bus import event_bus
 from src.layer01_datastate.event_bus.events import Events

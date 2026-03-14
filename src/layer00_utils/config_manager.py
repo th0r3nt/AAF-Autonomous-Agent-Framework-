@@ -27,6 +27,7 @@ class LLMConfig(BaseModel):
     model_config = {"protected_namespaces": ()} # Это заставит Pydantic заткнуться про "model_"
     
     model_name: str
+    vision_model: str 
     available_models: List[str]
     temperature: float
     max_react_steps: int
@@ -55,8 +56,8 @@ class GarbageCollectorConfig(BaseModel):
     temp_files_ttl_hours: int
 
 class SwarmConfig(BaseModel):
-    minion_model: str
-    max_minion_steps: int
+    sybagent_model: str
+    max_sybagent_steps: int
 
 class MemoryConfig(BaseModel):
     chroma_db_path: str
@@ -97,14 +98,16 @@ class AppConfig(BaseModel):
     system: SystemConfig
 
 def load_config() -> AppConfig:
+    # current_dir сейчас указывает на src/layer00_utils
     current_dir = Path(__file__).resolve().parent
-    yaml_path = current_dir / "settings.yaml"
+    
+    # Поднимаемся на 2 уровня вверх (до корня AAF) и заходим в config
+    yaml_path = current_dir.parent.parent / "config" / "settings.yaml"
 
     if not yaml_path.exists():
         raise FileNotFoundError(
-            "\nФайл конфигурации не найден!\n"
-            "Пожалуйста, скопируйте файл 'config/settings.example.yaml' в 'config/settings.yaml'\n"
-            "и настройте его под себя."
+            f"\nФайл конфигурации не найден по пути: {yaml_path}\n"
+            "Пожалуйста, запустите скрипт aaf_setup.py для настройки проекта."
         )
 
     with open(yaml_path, "r", encoding="utf-8") as f:

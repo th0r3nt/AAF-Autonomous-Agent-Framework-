@@ -1,5 +1,5 @@
 import asyncio
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer01_datastate.event_bus.event_bus import event_bus
 from src.layer01_datastate.event_bus.events import Events
 from src.layer01_datastate.sql_db.management.swarm_state import update_subagent_status

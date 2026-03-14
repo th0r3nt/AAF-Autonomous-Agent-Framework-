@@ -4,7 +4,7 @@ import chromadb.utils.embedding_functions as embedding_functions
 import os
 import warnings
 
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.watchdog.watchdog import vector_db_module
 from src.layer01_datastate.event_bus.event_bus import event_bus

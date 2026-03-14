@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import openai
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer01_datastate.sql_db.management.agent_actions import create_agent_action
 from src.layer01_datastate.sql_db.management.dialogue import create_dialogue_entry
@@ -21,7 +21,7 @@ def _dump_context_to_file(messages: list):
         import datetime
         os.makedirs("logs", exist_ok=True)
         
-        with open("logs/latest_llm_context.md", "w", encoding="utf-8") as f:
+        with open("src/logs/latest_llm_context.md", "w", encoding="utf-8") as f:
             f.write(f"# ОТЛАДКА КОНТЕКСТА {config.identity.agent_name} (Обновлено: {datetime.datetime.now().strftime('%H:%M:%S')})\n\n")
             
             for msg in messages:
@@ -135,27 +135,6 @@ async def _execute_single_tool(tool_call) -> dict:
 
     else:
         result_str = f"Error: Function {func_name} not found in registry."
-
-
-    # Работа с изображениями: если функция вернула словарь с Base64 
-    if isinstance(result, dict) and "__image_base64__" in result:
-        return {
-            "role": "tool",
-            "tool_call_id": tool_call.id,
-            "name": func_name,
-            "content": "Изображение успешно получено и загружено в твой контекст. Изучи его в следующем системном сообщении.",
-            "__inject_image__": result["__image_base64__"] # Скрытый тег
-        }
-    
-    # Работа с аудио
-    if isinstance(result, dict) and "__audio_base64__" in result:
-        return {
-            "role": "tool",
-            "tool_call_id": tool_call.id,
-            "name": func_name,
-            "content": "Аудиозапись успешно загружена в твой аудиальный процессор.",
-            "__inject_audio__": result["__audio_base64__"]
-        }
 
     # Обычный возврат текста
     return {
@@ -295,39 +274,9 @@ async def run_react_loop(messages: list, tools: list, temperature: float) -> str
             tasks = [_execute_single_tool(tool_call) for tool_call in response_message.tool_calls]
             tool_results = await asyncio.gather(*tasks)
 
-            # Добавляем результаты в историю сообщений (добавлена работа с изображениями)
+            # Добавляем результаты в историю сообщений
             for res in tool_results:
-                # Извлекаем скрытый теги (если есть)
-                inject_image_b64 = res.pop("__inject_image__", None) 
-                inject_audio_b64 = res.pop("__inject_audio__", None)
-                
-                # Добавляем стандартный ответ от инструмента
                 messages.append(res)
-                
-                # Если был тег картинки, сразу после инструмента кидаем синтетическое сообщение от юзера с картинкой
-                if inject_image_b64:
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": f"[{res['name']}] Визуальные данные:"},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{inject_image_b64}"}}
-                        ]
-                    })
-
-                if inject_audio_b64:
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Аудиальные данные (голосовое сообщение):"},
-                            {
-                                "type": "input_audio",
-                                "input_audio": {
-                                    "data": inject_audio_b64,
-                                    "format": "mp3"
-                                }
-                            }
-                        ]
-                    })
 
     except openai.APITimeoutError:
         error_msg = "[CRITICAL ERROR: ReAct цикл прерван. Серверы API недоступны]"

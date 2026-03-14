@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 from rapidfuzz import process, fuzz
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.watchdog.watchdog import graph_db_module
 from src.layer00_utils.watchdog.watchdog_decorator import watchdog_decorator

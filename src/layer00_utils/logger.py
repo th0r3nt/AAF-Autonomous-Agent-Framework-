@@ -1,6 +1,6 @@
 import logging
 import os
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 
 LOGGING_LEVEL_STR = config.system.logging_level.upper()
 LOGGING_LEVEL = getattr(logging, LOGGING_LEVEL_STR, logging.INFO)
@@ -74,7 +74,7 @@ class ColorFormatter(logging.Formatter):
         return log_message
 
 def setup_specific_logger(name, log_file, level=LOGGING_LEVEL):
-    log_dir = "logs"
+    log_dir = "src/logs"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 

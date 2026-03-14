@@ -28,5 +28,5 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Копируем весь остальной код проекта
 COPY . .
 
-# Указываем команду для запуска ядра
-CMD ["python", "main.py"]
+# Указываем команду для запуска
+CMD ["python", "-m", "src.main"]

@@ -25,6 +25,13 @@ src/layer00_utils/telegram_sessions/
 local_models/
 src/layer00_utils/vosk_model/
 
+workspace/_data/
+workspace/temp/
+workspace/sandbox/sandbox_state.json
+
+logs/
+src/logs/
+
 workspace/sandbox/*
 !workspace/sandbox/.gitkeep
 !workspace/sandbox/agent_sdk.py

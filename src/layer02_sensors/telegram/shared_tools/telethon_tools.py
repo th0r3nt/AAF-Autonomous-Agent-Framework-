@@ -15,9 +15,10 @@ from telethon.tl.functions.photos import UploadProfilePhotoRequest
 from src.layer00_utils.watchdog.watchdog_decorator import watchdog_decorator
 from src.layer00_utils.watchdog.watchdog import userbot_telethon_module
 from src.layer00_utils.workspace import workspace_manager
-from src.layer00_utils.image_tools import compress_and_encode_image
 from src.layer00_utils.audio_tools import process_audio_for_llm
+from src.layer00_utils.image_tools import compress_and_encode_image
 from src.layer02_sensors.pc.voice.tts import tts
+from src.layer03_brain.llm.multimodality import describe_image_with_vision_model, transcribe_audio_with_model
 
 def _get_content(msg):
     """Вспомогательная функция для парсинга медиа/текста/пересылок и системных действий"""
@@ -818,7 +819,7 @@ async def tg_send_voice_message(client: TelegramClient, chat_id: str | int, text
         return f"Ошибка при отправке голосового сообщения: {e}"
     
 @watchdog_decorator(userbot_telethon_module)
-async def tg_get_media(client: TelegramClient, chat_id: str | int, message_id: int) -> dict | str:
+async def tg_get_media(client: TelegramClient, chat_id: str | int, message_id: int) -> str:
     """Универсальный загрузчик: фото, ГС, кружочки, стикеры, миниатюры видео"""
     if isinstance(chat_id, str) and chat_id.lstrip('-').isdigit():
         chat_id = int(chat_id)
@@ -830,41 +831,48 @@ async def tg_get_media(client: TelegramClient, chat_id: str | int, message_id: i
         
         msg = messages[0]
         
-        # 1. Голосовые сообщения и кружочки (Video Notes)
-        if msg.voice or msg.video_note:
-            temp_path = workspace_manager.get_temp_file(prefix="audio_", extension=".ogg")
-            await client.download_media(msg, file=str(temp_path))
-            b64_data = await asyncio.to_thread(process_audio_for_llm, str(temp_path))
-            return {"__audio_base64__": b64_data}
-            
-        # 2. Фотографии
-        elif msg.photo:
+        # 1. Фотографии
+        if msg.photo:
             img_path = workspace_manager.get_temp_file(prefix="vision_", extension=".jpg")
             await client.download_media(msg, file=str(img_path))
             b64_string = await asyncio.to_thread(compress_and_encode_image, str(img_path))
-            return {"__image_base64__": b64_string}
             
-        # 3. Стикеры и Видео (Достаем миниатюру)
+            # ВМЕСТО СЛОВАРЯ ВЫЗЫВАЕМ СОПРОЦЕССОР
+            description = await describe_image_with_vision_model(b64_string)
+            return description
+            
+        # 2. Стикеры и Видео (Достаем миниатюру)
         elif msg.document:
             is_sticker = any(isinstance(attr, types.DocumentAttributeSticker) for attr in msg.document.attributes)
             is_video = any(isinstance(attr, types.DocumentAttributeVideo) for attr in msg.document.attributes)
             
             if is_sticker or is_video:
                 img_path = workspace_manager.get_temp_file(prefix="thumb_", extension=".jpg")
-                # thumb=-1 скачивает самую большую доступную миниатюру (JPEG)
                 downloaded = await client.download_media(msg, file=str(img_path), thumb=-1)
                 
                 if not downloaded:
-                    # Fallback: если миниатюры нет (например, обычный webp стикер), качаем сам файл
                     downloaded = await client.download_media(msg, file=str(img_path))
                     
                 if downloaded:
                     b64_string = await asyncio.to_thread(compress_and_encode_image, str(downloaded))
-                    return {"__image_base64__": b64_string}
+                    description = await describe_image_with_vision_model(b64_string)
+                    return description
                 else:
                     return "Не удалось извлечь изображение или миниатюру из файла."
                     
-            return f"Это файл/документ: {msg.file.name}. Чтение сырых файлов пока не поддерживается."
+            return f"Это файл/документ: {msg.file.name}. Это НЕ медиа. Используйте сооветствующий инструмент для скачивания файлов/документов."
+
+        # 3. Голосовые сообщения (Пока возвращаем заглушку, чтобы не крашить текстовые модели)
+        elif msg.voice or msg.video_note:
+            temp_path = workspace_manager.get_temp_file(prefix="audio_", extension=".ogg")
+            await client.download_media(msg, file=str(temp_path))
+            
+            # Конвертируем ogg в mp3 base64 с помощью твоей готовой утилиты
+            b64_data = await asyncio.to_thread(process_audio_for_llm, str(temp_path))
+            
+            # Отправляем в сопроцессор!
+            transcription = await transcribe_audio_with_model(b64_data)
+            return transcription
             
         return "Неизвестный тип медиа."
         

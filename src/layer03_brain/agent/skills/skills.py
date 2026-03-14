@@ -6,7 +6,7 @@ import os
 import ast
 from datetime import datetime, timedelta
 from pathlib import Path
-from config.config_manager import config
+from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.image_tools import compress_and_encode_image
 from src.layer01_datastate.sql_db.management.dialogue import create_dialogue_entry
@@ -674,7 +674,10 @@ def change_thoughts_interval(seconds: int) -> str:
 
 async def read_recent_logs(lines: int = 50) -> str:
     """Обертка: читает последние N строк из системного лога"""
-    log_path = "logs/system.log"
+    # Ищем от корня проекта
+    from pathlib import Path
+    current_dir = Path(__file__).resolve()
+    log_path = current_dir.parents[4] / "src" / "logs" / "system.log" 
     
     def _read_tail():
         if not os.path.exists(log_path):
