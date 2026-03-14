@@ -13,8 +13,12 @@ load_dotenv()
 # Настройки подключения
 SQL_DB_URL = os.getenv("SQL_DB_URL")
 
+if not SQL_DB_URL:
+    error_msg = "Переменная SQL_DB_URL не найдена в .env! Убедитесь, что файл заполнен корректно."
+    system_logger.critical(f"[SQL DB] {error_msg}")
+    raise ValueError(error_msg)
+
 # Создаем асинхронный движок
-# echo=True будет выводить все SQL-запросы в консоль (удобно для отладки, в проде отключить)
 engine = create_async_engine(
     SQL_DB_URL, 
     echo=False,

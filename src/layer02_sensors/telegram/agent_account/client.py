@@ -3,11 +3,19 @@ from telethon import TelegramClient
 from dotenv import load_dotenv
 from pathlib import Path
 from src.layer00_utils.config_manager import config
+from src.layer00_utils.logger import system_logger
 
 load_dotenv()
 
-TG_API_ID_AGENT = int(os.getenv("TG_API_ID_AGENT"))
-TG_API_HASH_AGENT = os.getenv("TG_API_HASH_AGENT")
+raw_api_id = os.getenv("TG_API_ID_AGENT")
+TG_API_HASH_AGENT = os.getenv("TG_API_HASH_AGENT", "")
+
+# Безопасный парсинг ID, чтобы не ронять весь проект при импорте
+try:
+    TG_API_ID_AGENT = int(raw_api_id) if raw_api_id else 0
+except ValueError:
+    system_logger.critical("[Telegram Telethon] Ошибка: TG_API_ID_AGENT должен состоять только из цифр!")
+    TG_API_ID_AGENT = 0
 
 SESSION_DIR = Path("workspace/_data/telegram_sessions")
 SESSION_DIR.mkdir(parents=True, exist_ok=True)
