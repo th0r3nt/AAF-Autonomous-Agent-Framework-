@@ -114,5 +114,6 @@ Memory: PostgreSQL (SQLAlchemy + JSONB), ChromaDB (Vector), KuzuDB (Graph)
 Sensors: Telethon (MTProto), psutil
 LLM Engine: Поддержка любых OpenAI-совместимых моделей (Gemini, GPT, Claude, GLM и др.).
 
+Также можете заглянуть в мой Telegram канал - там я подробнее рассказываю про разработку. t.me/VEGA_and_other_heresy
 
 *Architecture & Code by th0r3nt.*
