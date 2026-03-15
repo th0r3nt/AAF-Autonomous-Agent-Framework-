@@ -325,11 +325,11 @@ def print_agent_setup_guide(name):
     print(f"\n{Y}[!] ШАГ 2: АВТОРИЗАЦИЯ ТЕЛЕГРАМ{W}")
     print(f"    Выполните: {C}python aaf.py auth {name}{W}") 
     print("     (Это создаст файл сессии .session)")
-    print( "    Либо положите уже готовый файл .session в workspace/_data/telegram_sessions, предварительно переименовав файл сессии в agent_session.session")
+    print(f"    Либо положите уже готовый файл .session в Agents/{name}/workspace/_data/telegram_sessions, предварительно переименовав файл в 'agent_session.session'.")
 
     print(f"\n{Y}[!] ШАГ 3: КОНФИГУРАЦИЯ СИСТЕМЫ{W}")
     print(f"    Файл: {C}Agents/{name}/config/settings.yaml{W}")
-    print( "    Укажите ваше имя и ID вашего аккаунта в телеграм.")
+    print( "    Укажите ваше имя и ID вашего аккаунта в Telegram. По желанию можно изменить LLM модель и прочие параметры.")
 
     print(f"\n{Y}[!] ШАГ 4: PERSONALITY PROMPT{W}")
     print(f"    Файл: {C}Agents/{name}/config/personality/*.md{W}")
