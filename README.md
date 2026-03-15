@@ -118,4 +118,6 @@ A dedicated, fully isolated `sandbox_engine` service is spun up within the stack
 * **Sensors:** Telethon (MTProto), psutil
 * **LLM Engine:** Support for any OpenAI-compatible API (Gemini, GPT, Claude, GLM, DeepSeek, etc.).
 
+You can also check out my Telegram channel: I talk about development in more detail there. t.me/VEGA_and_other_heresy
+
 *Architecture & Code by th0r3nt.*
