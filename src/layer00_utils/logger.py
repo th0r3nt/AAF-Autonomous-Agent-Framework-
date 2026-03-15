@@ -32,10 +32,14 @@ class ColorFormatter(logging.Formatter):
     PREFIX_COLORS = {
         # Ядро и оркестратор
         "[BrainEngine]": LogColors.BRIGHT_CYAN,
+        "[Brain]": LogColors.BRIGHT_CYAN,
         "[WatchDog]": LogColors.BRIGHT_RED,
         "[System]": LogColors.BRIGHT_WHITE,
+        "[APIKeyManager]": LogColors.BRIGHT_GREEN,  # Токены и ключи - зеленым
+        "[GlobalState]": LogColors.WHITE,
+        "[Workspace]": LogColors.GRAY,
         
-        # Циклы мышления (разводим по светофору: События - Зеленый, Проактивность - Синий, Мысли - Желтый)
+        # Циклы мышления (разводим по светофору)
         "[Event-Driven ReAct]": LogColors.BRIGHT_GREEN,
         "[Proactivity ReAct]": LogColors.BRIGHT_BLUE,
         "[Thoughts ReAct]": LogColors.BRIGHT_YELLOW,
@@ -44,19 +48,30 @@ class ColorFormatter(logging.Formatter):
         "[Agent Action]": LogColors.BRIGHT_MAGENTA,
         "[Agent Action Result]": LogColors.GRAY, # Серый, чтобы не отвлекал внимание от самих действий
         
-        # Память
+        # Память и RAG
         "[MemoryManager]": LogColors.MAGENTA,
         "[Vector DB]": LogColors.GRAY,
         "[SQL DB]": LogColors.BLUE,
-        "[Graph DB]": LogColors.BRIGHT_MAGENTA,
+        "[Graph DB]": LogColors.MAGENTA,
+        "[Graph-RAG]": LogColors.BRIGHT_MAGENTA, # Каскад RAG
+        "[MentalState]": LogColors.BLUE,
         
-        # Сенсоры и модули
+        # Сенсоры и внешние модули
+        "[Telegram Telethon]": LogColors.BRIGHT_BLUE, # Ядро ТГ
+        "[Telegram Tools]": LogColors.CYAN,           # Инструменты ТГ
         "[Web Search]": LogColors.YELLOW,
         "[Web Reader]": LogColors.YELLOW,
         "[Vosk]": LogColors.CYAN,
         "[TTS]": LogColors.CYAN,
+        "[Vision]": LogColors.CYAN,
+        "[Audio]": LogColors.CYAN,
         "[Terminal Input]": LogColors.GREEN,
         "[System Map]": LogColors.GREEN,
+        
+        # Песочница и Рой
+        "[Sandbox]": LogColors.BRIGHT_YELLOW,         # Желтый - зона выполнения кода
+        "[Sandbox Listener]": LogColors.YELLOW,
+        "[SwarmManager]": LogColors.BRIGHT_YELLOW,    # Рой субагентов
     }
 
     def format(self, record):

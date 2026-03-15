@@ -12,6 +12,13 @@ load_dotenv(dotenv_path=env_path)
 
 API_URL = os.getenv("API_URL")
 
+if API_URL and not API_URL.startswith(("http://", "https://")):
+    # Если это localhost или IP, скорее всего это http, иначе https
+    if "localhost" in API_URL or "127.0.0.1" in API_URL:
+        API_URL = f"http://{API_URL}"
+    else:
+        API_URL = f"https://{API_URL}"
+
 # Ищем в переменных окружения все ключи, которые начинаются на "LLM_API_KEY_" и не пустые
 ALL_KEYS = [value for key, value in os.environ.items() if key.startswith("LLM_API_KEY_") and value.strip()]
 

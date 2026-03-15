@@ -218,7 +218,7 @@ async def run_react_loop(messages: list, tools: list, temperature: float) -> str
                     # Если это была не последняя попытка и есть живые ключи
                     if attempt < max_attempts - 1 and key_manager.total_active > 0:
                         system_logger.warning(f"[BrainEngine] Переключение API-ключа. (Попытка {attempt + 2} из {max_attempts})")
-                        await asyncio.sleep(10)
+                        await asyncio.sleep(5)
                     else:
                         # Если мы перебрали все ключи, и все отбили нас 429-й ошибкой (жесткий спам запросами)
                         # Возвращаем текст, чтобы ReAct цикл корректно завершился, а не упал
