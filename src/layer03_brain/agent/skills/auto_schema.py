@@ -18,7 +18,7 @@ TYPE_MAP = {
 def llm_skill(description: str, parameters: dict = None):
     """
     Магический декоратор. 
-    Сам собирает JSON-схему для OpenAI из аргументов твоей функции.
+    Сам собирает JSON-схему для OpenAI из аргументов функции.
     """
     if parameters is None:
         parameters = {}
@@ -26,7 +26,7 @@ def llm_skill(description: str, parameters: dict = None):
     def decorator(func: Callable):
         func_name = func.__name__
         
-        # 1. Автоматически добавляем функцию в реестр для вызова (заменяет REGISTRY)
+        # 1. Автоматически добавляем функцию в реестр для вызова
         global_skills_registry[func_name] = func
 
         # 2. Анализируем аргументы функции (читаем код)
@@ -65,17 +65,21 @@ def llm_skill(description: str, parameters: dict = None):
             "type": "function",
             "function": {
                 "name": func_name,
-                "description": description,
-                "parameters": {
-                    "type": "object",
-                    "properties": properties,
-                }
+                "description": description
             }
         }
-        if required:
-            schema["function"]["parameters"]["required"] = required
+        
+        # Защита от кривых API-прокси (OneAPI/LiteLLM):
+        # Добавляем блок parameters ТОЛЬКО если у функции реально есть аргументы.
+        if properties:
+            schema["function"]["parameters"] = {
+                "type": "object",
+                "properties": properties,
+            }
+            if required:
+                schema["function"]["parameters"]["required"] = required
 
-        # Автоматически добавляем схему в список (заменяет SCHEMAS)
+        # Автоматически добавляем схему в список
         global_openai_tools.append(schema)
 
         return func
