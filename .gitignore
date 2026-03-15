@@ -1,51 +1,49 @@
+# Файлы Python/OC
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
 venv/
 env/
+.DS_Store
+Thumbs.db
 
+# Конфиги/настройки/ключи
 .env
-
 config/settings.yaml
 config/personality/
-awakening_state.json
-awakening_state
 
-logs/*
-!logs/.gitkeep
-
-**/chroma_db/
-**/kuzu_db/
-src/layer00_utils/kuzu_db
-chroma_db
-
-src/layer00_utils/telegram_sessions/
-
-local_models/
-src/layer00_utils/vosk_model/
-
-workspace/_data/
+# Базы данных (ChromaDB, KuzuDB) и сессии Telegram
+workspace/_data/*
 !workspace/_data/.gitkeep
-workspace/temp/
-workspace/sandbox/sandbox_state.json
 
-logs/
-src/logs/
-
+# Песочница (оставляем только agent_sdk.py)
 workspace/sandbox/*
 !workspace/sandbox/.gitkeep
 !workspace/sandbox/agent_sdk.py
+
+# Временные файлы
 workspace/temp/*
 !workspace/temp/.gitkeep
 
+# Файлы состояний агента
+workspace/api_keys_state.json
+workspace/sandbox/sandbox_state.json
+
+# Тяжелые файлы
+src/layer00_utils/local_models/
+src/layer00_utils/vosk_model/
+
+# Логи
+src/logs/*
+!src/logs/.gitkeep
+logs/
+
+# Сгенерированные аудиофайлы TTS
 src/layer00_utils/phrases/*
 !src/layer00_utils/phrases/.gitkeep
 
-.DS_Store
-Thumbs.db
+# Утилиты
 TODO.md
 copy_all_code.py
 all_code.txt
-map.py
-api_keys_state.json

@@ -153,7 +153,7 @@ class MemoryManager:
         for t in reversed(thoughts): # Переворачиваем, чтобы старые были сверху
             time_str = t.created_at.strftime('%H:%M:%S')
             text = t.details.get('text', '')
-            lines.append(f"[{time_str}] [ИНТРОСПЕКЦИЯ]: {text}")
+            lines.append(f"[{time_str}] [Интроспекция]: {text}")
         return "\n".join(lines)
 
     async def get_chronicle_timeline(self, limit: int = 50) -> str:
@@ -187,20 +187,20 @@ class MemoryManager:
             if hasattr(item, 'action_type'):
                 if item.action_type == "memorize_information" and item.details.get("topic") == "introspection":
                     text = item.details.get('text', '')
-                    formatted_lines.append(f"[{time_str}] [ИНТРОСПЕКЦИЯ]: {text}")
+                    formatted_lines.append(f"[{time_str}] [Интроспекция]: {text}")
                 else:
                     details_str = str(item.details)
                     if len(details_str) > 150: 
                         details_str = details_str[:150] + "..."
-                    formatted_lines.append(f"[{time_str}] [ДЕЙСТВИЕ | {item.action_type}]: {details_str}")
+                    formatted_lines.append(f"[{time_str}] [Действие | {item.action_type}]: {details_str}")
                     
             elif hasattr(item, 'actor'):
                 if item.actor == "System":
-                    formatted_lines.append(f"[{time_str}] ⚙️ [СИСТЕМА]: {item.message}")
+                    formatted_lines.append(f"[{time_str}] [Система]: {item.message}")
                 elif item.actor == config.identity.agent_name:
-                    formatted_lines.append(f"[{time_str}] 🤖 [{config.identity.agent_name} -> {item.source}]: {item.message}")
+                    formatted_lines.append(f"[{time_str}] [{config.identity.agent_name} -> {item.source}]: {item.message}")
                 else:
-                    formatted_lines.append(f"[{time_str}] 👤 [{item.actor} -> {item.source}]: {item.message}")
+                    formatted_lines.append(f"[{time_str}] [{item.actor} -> {item.source}]: {item.message}")
 
         return "\n".join(formatted_lines)
     

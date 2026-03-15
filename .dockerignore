@@ -1,14 +1,30 @@
+
+
+# Git
 .git
 .gitignore
-venv
-.venv
-__pycache__
-.env
-workspace/_data/chroma_db
-workspace/_data/telegram_sessions
-workspace/_data/kuzu_db
-src/layer00_utils/local_models
 
+# Python
+# Используем **/, чтобы кэш игнорировался во всех вложенных папках
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+.venv/
+venv/
+env/
+
+# Конфиденциальные данные 
+.env
+
+# Тяжелые модели
+# Эти папки пробрасываются через volumes, их не нужно запекать в образ
+src/layer00_utils/local_models/
+src/layer00_utils/vosk_model/
+
+# Базы данных
+workspace/_data/
+
+# Утилиты
 TODO.md
 copy_all_code.py
 all_code.txt
