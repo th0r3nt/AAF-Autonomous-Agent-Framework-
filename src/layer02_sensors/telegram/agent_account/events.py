@@ -175,10 +175,6 @@ def register_agent_events(client: TelegramClient):
                 await create_dialogue_entry(actor=f"@{username}", message=text, source=chat_source)
             except Exception as e:
                 system_logger.error(f"[Telegram Events] Ошибка сохранения сообщения из группы в БД: {e}")
-            
-            # Сохраняем в историю диалогов в ЛЮБОМ случае 
-            # ВАЖНО: Если это канал обсуждений, мы тоже это залогируем
-            await create_dialogue_entry(actor=f"@{username}", message=text, source=chat_source)
 
             # --- Теперь распределяем по важности ---
             if is_mention:
