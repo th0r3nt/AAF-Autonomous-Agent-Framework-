@@ -10,8 +10,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: agent_core_db
-    ports:
-    - ${DB_PORT:-5433}:5432
     volumes:
     - agent_pg_data:/var/lib/postgresql/data
   sandbox_engine:

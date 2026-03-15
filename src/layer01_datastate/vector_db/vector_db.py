@@ -21,8 +21,21 @@ project_root = src_dir.parent if src_dir else current_dir.parents[3]
 # Динамические пути для каждого отдельного агента
 # ChromaDB будет лежать в Agents/{AGENT_NAME}/workspace/_data/chroma_db/
 CHROMA_DB_DIRECTORY = str(project_root / "Agents" / AGENT_NAME / config.memory.chroma_db_path)
+
+def resolve_model_path(base_path: str) -> str:
+    path = Path(base_path)
+    # Если внутри есть папка snapshots, берем первую подпапку в ней
+    snapshots_dir = path / "snapshots"
+    if snapshots_dir.exists():
+        subdirs = [d for d in snapshots_dir.iterdir() if d.is_dir()]
+        if subdirs:
+            return str(subdirs[0])
+    return base_path
+
+
 # Путь к локальной модели BAAI остается ОБЩИМ для всех агентов, чтобы не качать гигабайты дублей
-LOCAL_EMBEDDING_MODEL_PATH = str(project_root / config.memory.embedding_model.local_path)
+raw_path = project_root / config.memory.embedding_model.local_path
+LOCAL_EMBEDDING_MODEL_PATH = resolve_model_path(str(raw_path))
 
 embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(
     model_name=LOCAL_EMBEDDING_MODEL_PATH,
