@@ -28,5 +28,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Копируем весь остальной код проекта
 COPY . .
 
+# Динамическая установка звисимостей плагинов для конкретного агента
+
+# Получаем имя агента при сборке (передается из aaf.py -> docker-compose)
+ARG AGENT_NAME
+# Сохраняем его как переменную окружения внутри контейнера
+ENV AGENT_NAME=${AGENT_NAME}
+
+# Проверяем, есть ли файл custom_requirements.txt в папке плагинов этого агента.
+# Если есть - устанавливаем библиотеки из него. || true защищает от падения сборки.
+RUN if [ -f /app/Agents/${AGENT_NAME}/plugins/custom_requirements.txt ]; then \
+        echo "Installing custom plugins dependencies for ${AGENT_NAME}..." && \
+        pip install --no-cache-dir -r /app/Agents/${AGENT_NAME}/plugins/custom_requirements.txt || true; \
+    fi
+
 # Указываем команду для запуска
 CMD ["python", "-m", "src.main"]

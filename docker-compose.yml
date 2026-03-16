@@ -22,7 +22,10 @@ services:
     volumes:
     - ./Agents:/app/Agents
   agent_lumi:
-    build: .
+    build:
+      context: .
+      args:
+        AGENT_NAME: LUMI
     depends_on:
     - postgres_db
     - sandbox_engine
@@ -40,8 +43,33 @@ services:
     - ./Agents/LUMI:/app/Agents/LUMI
     - ./src:/app/src
     - ./src/layer00_utils/local_models:/app/src/layer00_utils/local_models
+  agent_test_agent:
+    build:
+      context: .
+      args:
+        AGENT_NAME: TEST_AGENT
+    depends_on:
+    - postgres_db
+    - sandbox_engine
+    restart: unless-stopped
+    env_file:
+    - ./Agents/TEST_AGENT/.env
+    environment:
+    - AGENT_NAME=TEST_AGENT
+    - DOCKER_HOST=tcp://sandbox_engine:2375
+    networks:
+      default:
+        aliases:
+        - agent_test_agent
+    volumes:
+    - ./Agents/TEST_AGENT:/app/Agents/TEST_AGENT
+    - ./src:/app/src
+    - ./src/layer00_utils/local_models:/app/src/layer00_utils/local_models
   agent_vega:
-    build: .
+    build:
+      context: .
+      args:
+        AGENT_NAME: VEGA
     depends_on:
     - postgres_db
     - sandbox_engine

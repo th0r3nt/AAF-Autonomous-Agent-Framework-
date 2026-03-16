@@ -22,147 +22,6 @@ except ImportError:
     import yaml
 
 # =====================================================================
-# ШАБЛОНЫ ФАЙЛОВ ДЛЯ НОВЫХ АГЕНТОВ
-# =====================================================================
-
-DEFAULT_ENV = """
-# База данных (Не меняйте URL, изоляция происходит на уровне схем автоматически)
-SQL_DB_URL=postgresql+asyncpg://postgres:postgres@postgres_db:5432/agent_core_db
-
-# Основной провайдер LLM (OpenAI-совместимый)
-API_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-
-# API Ключи (Rotator автоматически переключает их при лимитах 429)
-LLM_API_KEY_1=
-LLM_API_KEY_2=
-# LLM_API_KEY_3=
-# ...и так далее, система поддерживает любое количество ключей
-
-# API ключи для инструментов (Web Search и Weather)
-TAVILY_API_KEY=
-OPENWEATHER_API_KEY=
-
-# Настройки официального Telegram аккаунта агента
-TG_API_ID_AGENT=
-TG_API_HASH_AGENT=
-"""
-
-DEFAULT_SETTINGS_YAML = """
-identity:
-  agent_name: "{agent_name}"
-  admin_name: "AdminName"
-  admin_tg_id: 123456789 
-
-llm:
-  model_name: "gemini-flash-latest"
-  vision_model: "gemini-3.1-flash-lite-preview"
-  available_models:
-    - "gemini-3.1-pro-high"
-    - "gemini-flash-latest"
-    - "gpt-5.4"
-    - "claude-opus-4-6"
-  temperature: 0.7
-  max_react_steps: 15
-
-  limits:
-    max_file_read_chars: 80000
-    max_web_read_chars: 15000
-    image_max_size: [1500, 1500]
-
-  context_depth:
-      event_driven: { thoughts_limit: 5, actions_limit: 10, dialogue_limit: 30 }
-      proactivity: { thoughts_limit: 5, actions_limit: 20, dialogue_limit: 30 }
-      thoughts: { thoughts_limit: 10, actions_limit: 30, dialogue_limit: 40 }
-
-swarm:
-  sybagent_model: "gemini-3.1-flash-lite-preview"
-  max_sybagent_steps: 10
-
-rhythms:
-  proactivity_interval_sec: 900
-  thoughts_interval_sec: 1800
-  min_proactivity_cooldown_sec: 120
-  reduction_medium_sec: 180
-  reduction_low_sec: 60
-  telemetry_poll_sec: 60
-  weather_poll_sec: 1800
-
-memory:
-  chroma_db_path: "workspace/_data/chroma_db/"
-  similarity_threshold: 0.43
-  kuzu_db_path: "workspace/_data/kuzu_db"
-  embedding_model: 
-    name: "BAAI/bge-m3"
-    local_path: "src/layer00_utils/local_models/models--BAAI--bge-m3"
-  workspace_garbage_collector:
-    temp_files_ttl_hours: 48
-
-telegram:
-  agent_session_name: "agent_session"
-  ignored_users: [708513, 777000]
-
-hardware:
-  weather_city: "Moscow"
-  voice:
-    tts_voice: "ru-RU-SvetlanaNeural"
-    stt_model_path: "src/layer00_utils/vosk_model/vosk-model-small-ru-0.22"
-    sample_rate: 16000
-
-system:
-  logging_level: "INFO"
-  log_retention_days: 14
-  flags:
-    enable_proactivity: true            
-    enable_thoughts: true               
-    dump_llm_context: true
-    headless_mode: true  
-"""
-
-AGENT_SDK_PY = """
-import urllib.request
-import json
-import os
-
-STATE_FILE = "sandbox_state.json"
-MASTER_AGENT = os.getenv("MASTER_AGENT", "agent_core")
-IN_DOCKER = os.path.exists('/.dockerenv')
-HOST = MASTER_AGENT if IN_DOCKER else "127.0.0.1"
-LISTENER_URL = f"http://{HOST}:18790/alert"
-
-def send_alert(message: str):
-    try:
-        data = json.dumps({"message": message}).encode('utf-8')
-        req = urllib.request.Request(LISTENER_URL, data=data, headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req, timeout=3) as response:
-            pass 
-    except Exception as e:
-        print(f"Failed to send alert to Agent '{MASTER_AGENT}': {e}")
-
-def save_state(key: str, value):
-    state = {}
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, 'r', encoding='utf-8') as f:
-                state = json.load(f)
-        except Exception:
-            pass
-    state[key] = value
-    with open(STATE_FILE, 'w', encoding='utf-8') as f:
-        json.dump(state, f, ensure_ascii=False, indent=4)
-
-def load_state(key: str, default=None):
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, 'r', encoding='utf-8') as f:
-                state = json.load(f)
-                return state.get(key, default)
-        except Exception:
-            pass
-    return default 
-"""
-
-
-# =====================================================================
 # ЛОГИКА УТИЛИТЫ
 # =====================================================================
 
@@ -290,7 +149,12 @@ def generate_docker_compose():
                 alias = f"agent_{agent_name.lower()}"
                 
                 compose["services"][alias] = {
-                    "build": ".",
+                    "build": {
+                        "context": ".",
+                        "args": {
+                            "AGENT_NAME": agent_name # Передаем имя агента для динамической установки зависимостей добавленных плагинов
+                        }
+                    },
                     "depends_on": ["postgres_db", "sandbox_engine"],
                     "restart": "unless-stopped",
                     "env_file": [f"./Agents/{agent_name}/.env"],
@@ -304,7 +168,7 @@ def generate_docker_compose():
                     "volumes": [
                         f"./Agents/{agent_name}:/app/Agents/{agent_name}",
                         "./src:/app/src",
-                        "./src/layer00_utils/local_models:/app/src/layer00_utils/local_models"
+                        "./src/layer00_utils/local_models:/app/src/layer00_utils/local_models",
                     ]
                 }
 
@@ -350,27 +214,45 @@ def create_agent(name: str):
 
     print(f"{C}=== Создание профиля агента '{name}' ==={W}")
     
-    # Структура папок
+    # 1. Структура папок
     os.makedirs(os.path.join(agent_dir, "config/personality"), exist_ok=True)
     os.makedirs(os.path.join(agent_dir, "workspace/_data/telegram_sessions"), exist_ok=True)
     os.makedirs(os.path.join(agent_dir, "workspace/temp"), exist_ok=True)
     os.makedirs(os.path.join(agent_dir, "workspace/sandbox"), exist_ok=True)
     os.makedirs(os.path.join(agent_dir, "logs"), exist_ok=True)
+    os.makedirs(os.path.join(agent_dir, "plugins"), exist_ok=True)
 
-    # Генерация файлов
-    with open(os.path.join(agent_dir, ".env"), "w", encoding="utf-8") as f:
-        f.write(DEFAULT_ENV.strip())
-        
-    with open(os.path.join(agent_dir, "config/settings.yaml"), "w", encoding="utf-8") as f:
-        f.write(DEFAULT_SETTINGS_YAML.replace("{agent_name}", name).strip())
-        
+    # 2. Вспомогательная функция для копирования шаблонов
+    def copy_template(src_rel_path, dest_abs_path, replace_name=False):
+        src_path = os.path.join("templates", src_rel_path)
+        if not os.path.exists(src_path):
+            print(f"{Y}[!] Внимание: Шаблон '{src_path}' не найден! Пропущен.{W}")
+            return
+            
+        with open(src_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        if replace_name:
+            content = content.replace("{agent_name}", name)
+            
+        with open(dest_abs_path, "w", encoding="utf-8") as f:
+            f.write(content.strip() + "\n")
+
+    # 3. Раскидываем системные файлы
+    copy_template("env.template", os.path.join(agent_dir, ".env"))
+    copy_template("settings.yaml", os.path.join(agent_dir, "config/settings.yaml"), replace_name=True)
+    copy_template("agent_sdk.py", os.path.join(agent_dir, "workspace/sandbox/agent_sdk.py"))
+    
+    # 4. Раскидываем плагины
+    with open(os.path.join(agent_dir, "plugins/__init__.py"), "w", encoding="utf-8") as f:
+        f.write("")
+    copy_template("example_plugin.py", os.path.join(agent_dir, "plugins/example_plugin.py"))
+    with open(os.path.join(agent_dir, "plugins/custom_requirements.txt"), "w", encoding="utf-8") as f:
+        f.write("# Впишите сюда библиотеки для ваших плагинов (например: bs4, web3)\n# Они будут автоматически установлены при сборке агента.\n")
+
+    # 5. Раскидываем промпты личности
     for md_file in ["SOUL.md", "COMMUNICATION_STYLE.md", "EXAMPLES_OF_STYLE.md"]:
-        with open(os.path.join(agent_dir, f"config/personality/{md_file}"), "w", encoding="utf-8") as f:
-            f.write("<!-- Опишите характер агента в этом файле -->\n")
-
-    # Забрасываем Agent SDK в песочницу
-    with open(os.path.join(agent_dir, "workspace/sandbox/agent_sdk.py"), "w", encoding="utf-8") as f:
-        f.write(AGENT_SDK_PY.strip())
+        copy_template(f"personality/{md_file}", os.path.join(agent_dir, f"config/personality/{md_file}"))
 
     generate_docker_compose()
     print_agent_setup_guide(name=name)

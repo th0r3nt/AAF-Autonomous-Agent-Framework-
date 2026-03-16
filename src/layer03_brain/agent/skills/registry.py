@@ -10,6 +10,10 @@ import src.layer03_brain.agent.skills.memory.logic
 import src.layer03_brain.agent.skills.pc.logic
 import src.layer03_brain.agent.skills.telegram.logic  # noqa: F401
 
-# Экспортируем готовые списки для движка (engine.py и react.py)
+from src.layer03_brain.agent.skills.plugins_loader import load_custom_plugins
+# Подгружаем кастомные плагины (они сольются с системными списками)
+load_custom_plugins()
+
+# Экспортируем готовые списки для движка engine.py и react.py
 openai_tools = global_openai_tools
 skills_registry = global_skills_registry

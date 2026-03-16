@@ -18,6 +18,7 @@ Most modern Open-Source agents suffer from three problems: amnesia (forgetting c
 *   **👁️ Multimodality:** Use any text model (Gemini, Claude, GPT, GLM) as the main brain. When receiving photos, voice messages, or stickers, the system automatically passes the media through a dedicated Vision/Audio model (coprocessor) and returns a detailed text description to the brain.
 *   **💸 Free Operation (API Rotator):** The built-in key manager uses a Round-Robin algorithm and automatically switches to the next key when limits are reached (429 error).
 *   **🛡️ WatchDog & Self-Healing:** If a system module crashes, the agent wakes up with maximum priority, reads the Traceback, and attempts to find a solution to the problem.
+*   **🧩 Native Plugin System (Zero-Boilerplate):** Forget about writing JSON schemas for OpenAI Tools manually. Simply drop a Python file into the agent's folder, apply the `@llm_skill` decorator, and the framework automatically generates the schema, validates types, injects environment variables, and wraps everything in a fault-tolerant asynchronous thread. Dependencies (`custom_requirements.txt`) are installed on the fly by Docker.
 
 ---
 ## 🏗 Project Structure
@@ -109,6 +110,27 @@ A dedicated, fully isolated `sandbox_engine` service is spun up within the stack
 1. **Host Safety:** Even if the LLM hallucinates destructive code (e.g., `rm -rf /`), it will only destroy the temporary container inside the sandbox. Your host OS remains 100% safe.
 2. **Clean Environment:** Scripts leave no garbage or hung processes behind.
 3. **Safe Delegation:** You can confidently task the agent with scraping unknown websites or analyzing suspicious files.
+
+---
+### 🧩 Extensibility: Plugins vs Sandbox
+
+AAF provides two fundamentally different code execution mechanisms, covering 100% of use cases.
+
+#### 1. Sandbox — Routine Level
+* **How it works:** The agent *autonomously* writes a Python script and sends it to the isolated `sandbox_engine` (Docker-in-Docker).
+* **Security:** 100% isolation. The script has no access to the host kernel or databases.
+* **Use cases:** Delegating complex math, disposable scraping of "dirty" websites, format conversion, running background daemon watchers.
+* **Who writes the code:** The Neural Network (LLM).
+
+#### 2. Plugins (Skills) — Brain Level
+* **How it works:** You (the developer) create a `.py` file in the `Agents/<NAME>/plugins/` directory.
+* **Security:** 0% isolation. The plugin runs directly in the main AAF core Event Loop.
+* **Use cases:** Integration with external APIs (Binance, AWS, Smart Home) requiring secret keys from `.env`. Direct manipulation of vector and graph databases (`memory_manager`). Heavy synchronous computations.
+* **Who writes the code:** The Human (Architect).
+
+**How to create your own plugin?**
+You don't need to dive into the core source code. Open the automatically generated template at `Agents/<NAME>/plugins/example_plugin.py`. 
+Write your function, add the `@llm_skill` decorator, and list any required libraries in `custom_requirements.txt`. On the next startup (`python aaf.py start <NAME>`), Docker will automatically download the dependencies, and the skill will appear in the agent's arsenal.
 
 ---
 ## 🛠 Tech Stack
