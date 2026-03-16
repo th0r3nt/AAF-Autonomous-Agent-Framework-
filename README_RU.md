@@ -8,7 +8,7 @@
 
 ---
 
-## 📚 Документация (Глубокое погружение)
+## 📚 Документация
 Детальное описание архитектуры и гайды вынесены в отдельные файлы:
 * 🏗️ [Анатомия ядра и EventBus](docs/ARCHITECTURE_RU.md) - как работают слои системы, WatchDog и изоляция (DinD).
 * 🧠 [Тройная гибридная память](docs/MEMORY_AND_GRAPH_RU.md) - как работает GraphRAG (KuzuDB), Vector DB (ChromaDB) и SQL.
@@ -18,7 +18,7 @@
 * 🚑 [Частые проблемы (Troubleshooting)](docs/TROUBLESHOOTING_RU.md) - спам-фильтры Telegram, лимиты API (429) и зомби-контейнеры.
 
 ---
-## 🔥 Ключевые особенности (Кратко)
+## 🔥 Ключевые особенности
 
 * **♾️ Multi-Agent CLI Manager:** Разворачивайте любое количество независимых агентов на одном сервере через удобный интерактивный терминал (`aaf.py`). Docker Compose генерируется автоматически.
 * **🧠 Тройная гибридная память (SOTA):** Агент не теряет контекст. Комбинация SQL (жесткие правила), ChromaDB (семантика) и полноценного **GraphRAG** на базе KuzuDB (нелинейные ассоциации и интуиция).
@@ -28,7 +28,7 @@
 
 ---
 
-## ⚙️ Установка (Quick Start)
+## ⚙️ Установка
 
 Никаких `pip install`, конфликтов версий C++ компиляторов и ручной настройки баз данных. Проект упакован в Docker.
 
@@ -82,7 +82,7 @@ start LUMI
 
 ---
 
-## 🧩 Расширяемость: Плагины vs Песочница
+## 🧩 Расширяемость: плагины vs песочница
 
 AAF предоставляет два механизма выполнения кода:
 
@@ -93,7 +93,7 @@ AAF предоставляет два механизма выполнения к
 
 ## 🛠 Tech Stack
 
-* **Core:** Python 3.11+, Asyncio, Pydantic, Docker, coffee.
+* **Core:** Python 3.11+, Asyncio, Pydantic, Docker, caffeine.
 * **Memory:** PostgreSQL (SQLAlchemy + JSONB), ChromaDB (Vector), KuzuDB (Graph).
 * **Sensors:** Telethon (MTProto), psutil.
 * **LLM Engine:** Любое OpenAI-совместимое API (Gemini, GPT, Claude, DeepSeek и т.д.).
