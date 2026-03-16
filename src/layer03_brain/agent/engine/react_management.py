@@ -1,3 +1,5 @@
+import json
+
 from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
 from src.layer00_utils.watchdog.watchdog import event_driven_module, proactivity_module, thoughts_module
@@ -28,7 +30,6 @@ class ReActCycles:
         # Сборка промпта и контекста
         system_instruction = prompt_func(dynamic_traits)
         current_context = await context_func(*context_args, **context_kwargs)
-        # test_context = "None"
 
         messages = [
             {"role": "system", "content": system_instruction},
@@ -38,9 +39,15 @@ class ReActCycles:
         # Подсчет токенов для логгинга
         tokens_system = count_tokens(system_instruction)
         tokens_context = count_tokens(current_context)
-        token_stats = token_tracker.add_record(cycle_name, tokens_system, tokens_context)
+        
+        # Считаем токены инструментов (конвертируем JSON-схемы в строку)
+        tools_str = json.dumps(openai_tools, ensure_ascii=False)
+        tokens_tools = count_tokens(tools_str)
 
-        system_logger.info(f"[{cycle_name}] Промпт: ~{tokens_system} токенов | Контекст: ~{tokens_context} токенов")
+        # Передаем все три параметра в трекер
+        token_stats = token_tracker.add_record(cycle_name, tokens_system, tokens_context, tokens_tools)
+
+        system_logger.info(f"[{cycle_name}] Промпт: ~{tokens_system} | Контекст: ~{tokens_context} | Инструменты: ~{tokens_tools}")
         system_logger.debug(f"[TokenTracker] {token_stats}")
 
         # Вызов ReAct цикла

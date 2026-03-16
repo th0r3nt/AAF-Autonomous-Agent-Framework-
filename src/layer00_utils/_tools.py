@@ -29,9 +29,9 @@ class TokenTracker:
     def __init__(self, maxlen=10):
         self.history = deque(maxlen=maxlen)
 
-    def add_record(self, cycle_type: str, prompt_tokens: int, context_tokens: int) -> str:
+    def add_record(self, cycle_type: str, prompt_tokens: int, context_tokens: int, tools_tokens: int = 0) -> str:
         """Записывает токены текущего цикла и возвращает красивую статистику для логов"""
-        total = prompt_tokens + context_tokens
+        total = prompt_tokens + context_tokens + tools_tokens
         self.history.append({
             "type": cycle_type,
             "total": total
@@ -40,7 +40,7 @@ class TokenTracker:
         total_last_n = sum(item["total"] for item in self.history)
         avg_tokens = total_last_n // len(self.history)
         
-        return f"Входящих токенов за текущий цикл: {total}. За последние {len(self.history)} вызовов: {total_last_n} токенов (в среднем {avg_tokens}/вызов)."
+        return f"Входящих токенов: {total} (Промпт: {prompt_tokens}, Контекст: {context_tokens}, Инструменты: {tools_tokens}). За последние {len(self.history)} вызовов: {total_last_n} токенов (в среднем {avg_tokens}/вызов)."
 
 # Создаем глобальный экземпляр
 token_tracker = TokenTracker(maxlen=10)
