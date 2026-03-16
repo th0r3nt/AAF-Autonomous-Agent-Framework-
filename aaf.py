@@ -438,7 +438,7 @@ def cmd_auth(agent_name: str):
 
 def cmd_status():
     check_docker()
-    print(f"\n{C}=== AAF Swarm Status ==={W}")
+    print(f"\n{C}=== AAF Status ==={W}")
     
     agents = [d for d in os.listdir("Agents") if os.path.isdir(os.path.join("Agents", d))] if os.path.exists("Agents") else []
     if not agents:
@@ -454,7 +454,14 @@ def cmd_status():
     
     for agent in agents:
         alias = f"agent_{agent.lower()}"
-        status = running_containers.get(alias, f"{R}Offline{W}")
+        
+        # Ищем совпадение подстроки в именах контейнеров
+        status = f"{R}Offline{W}"
+        for container_name, container_status in running_containers.items():
+            if alias in container_name:
+                status = container_status
+                break
+                
         if "Up" in status:
             status = f"{G}{status}{W}"
             

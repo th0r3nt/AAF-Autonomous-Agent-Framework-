@@ -49,7 +49,7 @@ async def get_recent_agent_actions(limit: int = 15) -> str:
                 time_str = a.created_at.strftime('%Y-%m-%d %H:%M:%S') 
                 
                 # Обрезаем детали, чтобы не засорять контекст LLM
-                limit = 100
+                limit = 200
                 details_str = str(a.details)
                 if len(details_str) > limit:
                     details_str = details_str[:limit] + "... [Обрезано]"

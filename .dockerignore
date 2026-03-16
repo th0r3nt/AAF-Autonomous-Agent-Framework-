@@ -12,7 +12,7 @@ venv/
 env/
 
 # Мульти-агентная структура (v1.1.0)
-Agents/
+_data
 docker-compose.yml
 
 # Конфиденциальные данные 
@@ -24,9 +24,9 @@ src/layer00_utils/local_models/
 src/layer00_utils/vosk_model/
 
 # Базы данных
-workspace/_data/
+workspace/_data
+Agents/*/.env
 
 # Утилиты
-TODO.md
 copy_all_code.py
 all_code.txt
