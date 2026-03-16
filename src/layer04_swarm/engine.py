@@ -1,5 +1,5 @@
-# Файл: src/layer04_swarm/engine.py
-
+import inspect 
+from src.layer03_brain.agent.engine.react import _rescue_json # Импортируем спасателя JSON
 import json
 import asyncio
 from src.layer00_utils.config_manager import config
@@ -20,38 +20,76 @@ async def _execute_tool(subagent, tool_call):
         subagent.add_log(f"Перехвачена галлюцинация LLM: попытка прямого вызова {func_name}.")
         return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": "System Error: Прямой вызов запрещен. Необходимо использовать 'execute_skill'."}
 
+    # 1. Читаем и СПАСАЕМ кривой JSON от Flash-Lite
     try:
-        args = json.loads(tool_call.function.arguments)
-    except Exception as e:
-        return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": f"JSON Error: {e}"}
+        raw_args = json.loads(tool_call.function.arguments)
+    except json.JSONDecodeError as original_error:
+        try:
+            raw_args = _rescue_json(tool_call.function.arguments)
+        except Exception:
+            return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": f"JSONDecodeError: Ошибка парсера: {original_error}"}
 
-    skill_uri = args.pop("skill_uri", None)
+    # 2. ПРАВИЛЬНАЯ РАСПАКОВКА по новой L2-схеме
+    skill_uri = raw_args.get("skill_uri")
+    args = raw_args.get("kwargs", {})
+
     if not skill_uri:
         return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": "System Error: Отсутствует 'skill_uri'."}
 
     subagent.add_log(f"Вызов L2 инструмента: {skill_uri}")
 
-    # 1. Системные инструменты субагента (им нужен объект subagent)
+
+    # ==============================================================
+    # 3. Системные инструменты субагента (им нужен объект subagent)
+
     if skill_uri in system_tools_registry:
+        target_func = system_tools_registry[skill_uri]
+        
+        # МАГИЯ АВТО-КАСТА ТИПОВ
         try:
-            result = await system_tools_registry[skill_uri](subagent, **args)
+            sig = inspect.signature(target_func)
+            for param_name, param in sig.parameters.items():
+                if param_name in args:
+                    val = args[param_name]
+                    if param.annotation is int and isinstance(val, str) and val.strip().lstrip('-').isdigit():
+                        args[param_name] = int(val)
+                    elif param.annotation is bool and isinstance(val, str):
+                        args[param_name] = val.lower() in ['true', '1', 'yes']
+        except Exception:
+            pass
+
+        try:
+            result = await target_func(subagent, **args) # Передаем починенные **args
             return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": str(result)}
         except Exception as e:
             subagent.add_log(f"Ошибка в {skill_uri}: {e}")
             return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": f"TypeError: {e}"}
 
-    # 2. Обычные инструменты (из глобального реестра)
-    # Субагент просит тулзу по её старому "name", но в реестре она лежит по "uri". 
-    # В L0 манифесте субагента мы будем писать URI так: 'aaf://sandbox/read_sandbox_file'.
+
+    # ==============================================================
+    # 4. Обычные инструменты (из глобального реестра)
+
     if skill_uri in skills_registry:
-        
-        # Защита: проверяем, есть ли этот навык (его короткое имя) в allowed_tools субагента
         short_name = skill_uri.split("/")[-1]
         if short_name not in subagent.allowed_tools:
              return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": f"System Error: Навык '{skill_uri}' запрещен для твоей роли."}
              
+        target_func = skills_registry[skill_uri]
+
+        # МАГИЯ АВТО-КАСТА ТИПОВ
         try:
-            target_func = skills_registry[skill_uri]
+            sig = inspect.signature(target_func)
+            for param_name, param in sig.parameters.items():
+                if param_name in args:
+                    val = args[param_name]
+                    if param.annotation is int and isinstance(val, str) and val.strip().lstrip('-').isdigit():
+                        args[param_name] = int(val)
+                    elif param.annotation is bool and isinstance(val, str):
+                        args[param_name] = val.lower() in['true', '1', 'yes']
+        except Exception:
+            pass
+
+        try:
             if asyncio.iscoroutinefunction(target_func):
                 result = await target_func(**args)
             else:
@@ -73,9 +111,11 @@ async def _execute_tool(subagent, tool_call):
 
 def _build_subagent_l0_manifest(allowed_tools: list) -> str:
     """Динамически собирает L0 справочник только из РАЗРЕШЕННЫХ субагенту инструментов"""
-    lines = [
+    lines =[
         "## L0 SKILL LIBRARY (Доступные инструменты)",
-        "ЕДИНСТВЕННЫЙ способ взаимодействия с системой — вызов инструмента `execute_skill(skill_uri, **kwargs)`.\n"
+        "ЕДИНСТВЕННЫЙ способ взаимодействия с системой — вызов инструмента `execute_skill(skill_uri, **kwargs)`.",
+        "ВАЖНО: Когда ты выполнил свою задачу (например, сохранил отчет в файл), просто верни финальный текстовый ответ без вызова инструментов. Это завершит твою работу.",
+        ""
     ]
     
     # 1. Добавляем системные тулзы (Делегирование, Эскалация, Тревога)

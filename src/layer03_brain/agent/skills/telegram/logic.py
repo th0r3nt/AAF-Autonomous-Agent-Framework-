@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone 
 import os
 from src.layer00_utils.config_manager import config
 from src.layer00_utils.workspace import workspace_manager
@@ -61,7 +61,8 @@ def _format_chat_source(chat_id: str | int, topic_id: int = None) -> str:
 async def send_message_as_agent(chat_id: str, text: str, topic_id: int = None, silent: bool = False, delay_seconds: int = 0) -> str:
     schedule_date = None
     if delay_seconds > 0:
-        schedule_date = datetime.now() + timedelta(seconds=delay_seconds)
+        # Telethon требует строгий UTC для отложенных сообщений
+        schedule_date = datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)
         
     result = await tg_send_message(agent_client, chat_id, text, topic_id, silent, schedule_date)
     

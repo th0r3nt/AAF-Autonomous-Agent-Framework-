@@ -32,7 +32,7 @@ global_openai_tools = [
         }
     }
 ]
-
+ 
 # Шпаргалка для красивого вывода типов
 def _get_type_name(annotation) -> str:
     if annotation == inspect.Parameter.empty or annotation == Any:
@@ -101,6 +101,8 @@ def llm_skill(description: str, parameters: dict = None, category_override: str 
             arg_str = f"{param_name}: {arg_type_display}"
             if is_optional:
                 arg_str += f"={repr(param.default)}"
+            else:
+                arg_str += " [REQ]"  # <--- Добавляем жесткий маркер
             l0_args.append(arg_str)
 
             # СБОРКА L1 (Подробно) 

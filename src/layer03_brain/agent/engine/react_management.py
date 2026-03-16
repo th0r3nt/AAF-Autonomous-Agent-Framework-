@@ -36,15 +36,21 @@ class ReActCycles:
             {"role": "user", "content": current_context}
         ]
 
-        # Подсчет токенов для логгинга
-        tokens_system = count_tokens(system_instruction) # Также включен текстовый L0-справочник
+        # 1. Считаем, сколько весит текстовый L0-манифест
+        l0_text = prompt_manager._get_l0_manifest_text()
+        tokens_l0 = count_tokens(l0_text)
+
+        # 2. Промпт: вычитаем L0-манифест, чтобы получить чистый вес личности и системных инструкций
+        tokens_system = count_tokens(system_instruction) - tokens_l0
+        
+        # 3. Контекст: считаем как обычно
         tokens_context = count_tokens(current_context)
         
-        # Считаем токены инструментов (конвертируем JSON-схемы в строку)
+        # 4. Инструменты: JSON-схема (213 токенов) + текстовый L0-манифест
         tools_str = json.dumps(openai_tools, ensure_ascii=False)
-        tokens_tools = count_tokens(tools_str)
+        tokens_tools = count_tokens(tools_str) + tokens_l0
 
-        # Передаем все три параметра в трекер
+        # Передаем обновленные переменные в трекер
         token_stats = token_tracker.add_record(cycle_name, tokens_system, tokens_context, tokens_tools)
 
         system_logger.info(f"[{cycle_name}] Промпт: ~{tokens_system} | Контекст: ~{tokens_context} | Инструменты: ~{tokens_tools}")
