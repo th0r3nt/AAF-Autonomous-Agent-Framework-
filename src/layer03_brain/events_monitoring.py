@@ -73,12 +73,21 @@ class EventsMonitoring:
                 if len(safe_kwargs['result']) > 5000:
                     safe_kwargs['result'] = safe_kwargs['result'][:5000] + "\n... [Обрезано]"
 
-            kwargs_str = str(safe_kwargs)
-            lines.append(f"[{event['event'].name}] args: {event['args']}, kwargs: {kwargs_str}")
+            # Красивое форматирование вместо str(dict) 
+            kwargs_parts =[]
+            for k, v in safe_kwargs.items():
+                if isinstance(v, str) and '\n' in v:
+                    # Если текст длинный и с переносами, выводим его отдельным блоком
+                    kwargs_parts.append(f"\n--- {k.upper()} ---\n{v}\n-------------------")
+                else:
+                    kwargs_parts.append(f"{k}='{v}'")
+            
+            kwargs_str = ", ".join(kwargs_parts)
+            
+            desc = event['event'].description
+            lines.append(f"[{event['event'].name}]: {desc}\nДетали: {kwargs_str}\n")
         
         result = "\n".join(lines) if lines else "Нет фоновых событий."
-        
-        # Важно: Очищаем очередь, чтобы агент не реагировал на одно и то же дважды
         self.background_events.clear()
         
         return result

@@ -19,6 +19,12 @@ class BaseWorker(BaseSubagent):
                 await self.die(final_status="escalated")
                 return
             
+            if not result or result.strip() == "":
+                result = "--- Автоматический системный отчет ---\n"
+                result += "LLM не вернула финальный текст, но инструменты были вызваны.\n"
+                result += "Логи выполнения:\n"
+                result += "\n".join(list(self.logs))
+            
             # Стандартное завершение
             from src.layer00_utils.workspace import workspace_manager
             import asyncio
