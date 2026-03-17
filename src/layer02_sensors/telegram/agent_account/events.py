@@ -55,7 +55,7 @@ def register_agent_events(client: TelegramClient):
             message_id = event.id
             chat_id = str(event.chat_id) 
             
-            chat_source = f"tg_agent_chat_({username})"
+            chat_source = f"tg_agent_chat_({chat_id})"
             await create_dialogue_entry(actor=f"@{username}", message=text, source=chat_source)
             
             # Передаем chat_id в kwargs
@@ -164,7 +164,7 @@ def register_agent_events(client: TelegramClient):
 
                 topic_prefix = f" [Топик: {topic_title} (ID: {topic_id})]"
 
-            chat_source = f"tg_agent_group_({chat_title}){topic_prefix}"
+            chat_source = f"tg_agent_group_({chat_id}){topic_prefix}"
             
             # Обрезаем длину источника, чтобы SQLAlchemy не падал с DataError (лимит 100 символов)
             if len(chat_source) > 99:

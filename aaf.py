@@ -431,13 +431,29 @@ def process_command(args_list):
         if not args.agent:
             print(f"{R}Укажите имя агента: logs <NAME>{W}")
             return True
+            
         alias = f"agent_{args.agent.lower()}"
-        # В интерактивном режиме логи лучше прерывать по Ctrl+C и возвращаться в меню
-        print(f"{Y}Нажмите Ctrl+C для выхода из логов...{W}")
-        try:
-            run_cmd(f"docker compose logs {alias} -f")
-        except KeyboardInterrupt:
-            print(f"\n{C}Выход из просмотра логов.{W}")
+        print(f"{G}Открываю логи агента {args.agent.upper()} в новом окне...{W}")
+        
+        import platform
+        current_os = platform.system()
+        
+        if current_os == "Windows":
+            # Открывает новое окно CMD с красивым заголовком и стримит логи
+            subprocess.Popen(f'start "AAF Logs: {args.agent.upper()}" cmd /k "docker compose logs {alias} -f"', shell=True)
+            
+        elif current_os == "Darwin": # macOS
+            subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "cd {os.getcwd()} && docker compose logs {alias} -f"'])
+            
+        else: # Linux (Попытка открыть в gnome-terminal, если не выйдет - старый метод)
+            try:
+                subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', f'docker compose logs {alias} -f; exec bash'])
+            except Exception:
+                print(f"{Y}Не удалось открыть новое окно терминала. Запускаю логи здесь (Нажмите Ctrl+C для выхода)...{W}")
+                try:
+                    run_cmd(f"docker compose logs {alias} -f")
+                except KeyboardInterrupt:
+                    print(f"\n{C}Выход из просмотра логов.{W}")
 
     return True
 

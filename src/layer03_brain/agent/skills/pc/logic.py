@@ -54,7 +54,17 @@ async def speak_text(text: str) -> str:
 )
 def list_local_directory(path: str = ".") -> str:
     try:
-        target_path = Path(path).resolve()
+        clean_path = path.replace("\\", "/").strip("/")
+        
+        # Умный резолв пути: перехватываем обращения к песочнице
+        if clean_path.startswith("workspace"):
+            target_path = (workspace_manager.workspace_dir.parent / clean_path).resolve()
+        else:
+            target_path = (workspace_manager.project_root / clean_path).resolve()
+
+        # Жесткая защита от выхода за пределы проекта
+        if not str(target_path).startswith(str(workspace_manager.project_root)):
+            return "Ошибка безопасности: Доступ за пределы корневой папки проекта запрещен."
 
         if not target_path.exists(): 
             return f"Ошибка: Директория '{path}' не существует."

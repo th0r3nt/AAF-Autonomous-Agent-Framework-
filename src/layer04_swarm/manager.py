@@ -27,6 +27,7 @@ class SwarmManager:
                 obj = ROLE_CLASSES[record.role](record)
                 task = asyncio.create_task(obj.run())
                 self.active_processes[record.name] = {"task": task, "obj": obj}
+                task.add_done_callback(lambda t, n=record.name: self.active_processes.pop(n, None))
                 count += 1
             else:
                 system_logger.warning(f"[SwarmManager] Неизвестная роль '{record.role}' для '{record.name}'")
@@ -46,6 +47,7 @@ class SwarmManager:
         
         task = asyncio.create_task(obj.run())
         self.active_processes[name] = {"task": task, "obj": obj}
+        task.add_done_callback(lambda t, n=name: self.active_processes.pop(n, None))
         
         system_logger.info(f"[SwarmManager] Запущен субагент '{name}' (Роль: {role})")
         return f"Субагент '{name}' (Роль: {role}) успешно запущен в фоне."
@@ -59,6 +61,7 @@ class SwarmManager:
         obj = ROLE_CLASSES[role](db_record)
         task = asyncio.create_task(obj.run())
         self.active_processes[name] = {"task": task, "obj": obj}
+        task.add_done_callback(lambda t, n=name: self.active_processes.pop(n, None))
         system_logger.info(f"[SwarmManager] Agentic Mesh: {parent_name} создал дополнительного субагента '{name}' (Depth: {chain_depth})")
 
     async def kill_subagent(self, name: str) -> str:

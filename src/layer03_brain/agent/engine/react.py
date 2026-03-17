@@ -1,4 +1,4 @@
-import os
+import inspect
 import json
 import asyncio
 import openai
@@ -87,69 +87,81 @@ def _rescue_json(broken_json_str: str) -> dict:
     return json.loads(broken_json_str)
 
 async def _execute_single_tool(tool_call) -> dict:
-    """Изолированная функция для выполнения одного инструмента. Позволяет запускать их параллельно."""
+    """Изолированная функция для выполнения навыка через единый роутер (execute_skill)."""
     func_name = tool_call.function.name
     
+    if func_name != "execute_skill":
+        error_msg = f"System Error: Прямой вызов функции '{func_name}' запрещен. Используй 'execute_skill'."
+        return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": error_msg}
+
     try:
-        # Пробуем распарсить стандартным способом
-        func_args = json.loads(tool_call.function.arguments)
+        raw_args = json.loads(tool_call.function.arguments)
     except json.JSONDecodeError as original_error:
-        # Если упало - зовем спасателя
         try:
-            func_args = _rescue_json(tool_call.function.arguments)
-            system_logger.info(f"[Agent Action] Успешно восстановлен кривой JSON для инструмента {func_name}.")
+            raw_args = _rescue_json(tool_call.function.arguments)
         except Exception:
-            # Если спасатель тоже не справился, возвращаем ошибку агенту
-            error_msg = f"JSONDecodeError: Неверный формат аргументов. Исправь синтаксис JSON. Ошибка парсера: {original_error}"
-            system_logger.warning(f"[Agent Action] {func_name} провален (кривой JSON): {error_msg}")
-            
-            # Логируем сам кривой JSON в дебаг, чтобы потом можно было понять, почему он сломался
-            system_logger.debug(f"[Agent Action] Сломанный JSON от LLM: {tool_call.function.arguments}")
-            
-            return {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "name": func_name,
-                "content": error_msg
-            }
+            error_msg = f"JSONDecodeError: Ошибка парсера: {original_error}"
+            return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": error_msg}
+
+    # ИЗМЕНЕНИЕ: Извлекаем URI и kwargs по новой схеме
+    skill_uri = raw_args.get("skill_uri")
+    args = raw_args.get("kwargs", {})
+
+    if not skill_uri:
+        return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": "System Error: Отсутствует 'skill_uri'."}
+
+    if skill_uri not in skills_registry:
+        return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": f"System Error: Навык '{skill_uri}' не существует."}
+
+    target_func = skills_registry[skill_uri]
+
+    # --- МАГИЯ АВТО-КАСТА ТИПОВ ---
+    try:
+        sig = inspect.signature(target_func)
+        for param_name, param in sig.parameters.items():
+            if param_name in args:
+                val = args[param_name]
+                # Если функция ждет int, а LLM прислала строку "5"
+                if param.annotation is int and isinstance(val, str):
+                    clean_val = val.strip().lstrip('-')
+                    if clean_val.isdigit():
+                        args[param_name] = int(val)
+                # Если функция ждет bool, а прислала строку "true"
+                elif param.annotation is bool and isinstance(val, str):
+                    args[param_name] = val.lower() in['true', '1', 'yes']
+    except Exception as e:
+        system_logger.debug(f"[Agent Action] Ошибка при автокасте типов: {e}")
+    # --------------------------------
 
     result = None
-    
-    if func_name in skills_registry:
-        limit = 400
+    limit = 400
 
-        # Заменяем переносы строк на экранированные \n, чтобы логгер не ломался
-        args_str = str(func_args).replace('\n', '\\n')
-        if len(args_str) > limit:
-            args_str = args_str[:limit] + "... [Обрезано]"
+    args_str = str(args).replace('\n', '\\n')
+    if len(args_str) > limit:
+        args_str = args_str[:limit] + "... [Обрезано]"
 
-        system_logger.info(f"[Agent Action] {func_name} с аргументами {args_str}.")
+    system_logger.info(f"[Agent Action] Вызов L2: {skill_uri} с аргументами {args_str}.")
 
-        try:
-            # Если функция асинхронная
-            if asyncio.iscoroutinefunction(skills_registry[func_name]):
-                result = await skills_registry[func_name](**func_args)
+    try:
+        if asyncio.iscoroutinefunction(target_func):
+            result = await target_func(**args)
+        else:
+            result = await asyncio.to_thread(target_func, **args)
 
-            # Если функция синхронная (например, ChromaDB)
-            else:
-                # Запускаем синхронный код в фоне, не блокируя асинхронный мозг
-                result = await asyncio.to_thread(skills_registry[func_name], **func_args)
+        result_str = str(result).replace('\n', '\\n')
+        system_logger.info(f"[Agent Action Result] {result_str[:limit] + ('...[Обрезано]' if len(result_str) > limit else '')}")
 
-            # FIX: Экранируем переносы строк и в результате
-            result_str = str(result).replace('\n', '\\n')
-            system_logger.info(f"[Agent Action Result] {result_str[:limit] + ('... [Обрезано]' if len(result_str) > limit else '')}")
+        await create_agent_action(action_type=skill_uri, details=args)
 
-        except Exception as e:
-            system_logger.error(f"Ошибка при выполнении {func_name}: {e}")
-            result_str = f"Error executing function: {e}"
+    except TypeError as e:
+        error_msg = f"TypeError (Неверные параметры): {e}. Вызови 'aaf://core/get_skill_docs' (передав target_uri='{skill_uri}')."
+        system_logger.warning(f"[Agent Action] Ошибка типизации в {skill_uri}: {e}")
+        result = error_msg
+        
+    except Exception as e:
+        system_logger.error(f"Системная ошибка при выполнении {skill_uri}: {e}")
+        result = f"System Error executing function: {e}"
 
-        # Сохраняем действие в БД
-        await create_agent_action(action_type=func_name, details=func_args)
-
-    else:
-        result_str = f"Error: Function {func_name} not found in registry."
-
-    # Обычный возврат текста
     return {
         "role": "tool",
         "tool_call_id": tool_call.id,
