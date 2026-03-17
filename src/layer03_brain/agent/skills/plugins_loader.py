@@ -22,7 +22,7 @@ def load_custom_plugins():
         if py_file.name.startswith("_"):
             continue
             
-        module_name = f"custom_plugin_{py_file.stem}"
+        module_name = f"plugins.custom_plugin_{py_file.stem}"
         
         try:
             spec = importlib.util.spec_from_file_location(module_name, py_file)

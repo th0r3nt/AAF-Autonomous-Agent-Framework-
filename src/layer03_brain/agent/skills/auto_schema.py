@@ -18,7 +18,7 @@ global_openai_tools = [
                 "properties": {
                     "skill_uri": {
                         "type": "string",
-                        "description": "Точный URI навыка из L0 Справочника (например, 'aaf://telegram/send_message_as_agent')."
+                        "description": "Точный URI навыка из L0 Справочника."
                     },
                     "kwargs": {
                         "type": "object",
@@ -66,7 +66,8 @@ def llm_skill(description: str, parameters: dict = None, category_override: str 
             elif "plugins" in module_parts:
                 category = "plugins"
                 
-        uri = f"aaf://{category}/{func_name}"
+        uri = f"aaf://{category}/{func_name}" # Для более подробного вывода
+        # uri = func_name
         
         # 2. Регистрируем функцию в глобальном реестре
         global_l2_registry[uri] = func

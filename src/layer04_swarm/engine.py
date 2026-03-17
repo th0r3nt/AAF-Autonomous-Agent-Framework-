@@ -1,9 +1,11 @@
 import inspect 
-from src.layer03_brain.agent.engine.react import _rescue_json # Импортируем спасателя JSON
+import openai
 import json
 import asyncio
 from src.layer00_utils.config_manager import config
 from src.layer03_brain.llm.client import client_openai, key_manager
+
+from src.layer03_brain.agent.engine.react import _rescue_json 
 
 # Импортируем НОВЫЕ глобальные переменные
 from src.layer03_brain.agent.skills.registry import skills_registry, openai_tools, l0_manifest
@@ -32,6 +34,14 @@ async def _execute_tool(subagent, tool_call):
     # 2. ПРАВИЛЬНАЯ РАСПАКОВКА по новой L2-схеме
     skill_uri = raw_args.get("skill_uri")
     args = raw_args.get("kwargs", {})
+
+    # 1. Если модель сделала двойное вложение {"kwargs": {"kwargs": {"query": "..."}}}
+    if isinstance(args, dict) and "kwargs" in args and isinstance(args["kwargs"], dict):
+        args = args["kwargs"]
+        
+    # 2. Если модель засунула аргументы в корень JSON, проигнорировав объект 'kwargs'
+    elif not args and len(raw_args) > 1:
+        args = {k: v for k, v in raw_args.items() if k not in ["skill_uri", "kwargs"]}
 
     if not skill_uri:
         return {"role": "tool", "tool_call_id": tool_call.id, "name": func_name, "content": "System Error: Отсутствует 'skill_uri'."}
@@ -160,32 +170,44 @@ async def run_subagent_react(subagent, task_query: str) -> str:
     steps = 0
     while steps < MAX_SYBAGENT_STEPS:
         steps += 1
-        client_openai.api_key = await key_manager.get_next_key()
+        
+        response = None
+        # Даем субагенту 3 попытки пробить лимиты API
+        for attempt in range(3):
+            client_openai.api_key = await key_manager.get_next_key()
+            try:
+                response = await client_openai.chat.completions.create(
+                    model=SYBAGENT_MODEL,
+                    messages=messages,
+                    tools=openai_tools,
+                    tool_choice="auto"
+                )
+                break # Запрос прошел успешно!
+                
+            except openai.RateLimitError:
+                wait_time = 5 + (attempt * 5) # 5s, 10s, 15s...
+                subagent.add_log(f"Пойман 429 Rate Limit. (Попытка {attempt+1}/3)...")
+                await asyncio.sleep(wait_time)
+                
+            except Exception as e:
+                subagent.add_log(f"Критическая ошибка API: {e}")
+                return f"Субагент упал с ошибкой API: {e}"
 
-        try:
-            response = await client_openai.chat.completions.create(
-                model=SYBAGENT_MODEL,
-                messages=messages,
-                tools=openai_tools, # ПЕРЕДАЕМ ТОЛЬКО ЕДИНУЮ СХЕМУ execute_skill
-                tool_choice="auto"
-            )
+        if not response:
+            return "Субагент умер: превышен лимит попыток достучаться до API (Rate Limit 429)."
 
-            msg = response.choices[0].message
+        msg = response.choices[0].message
 
-            if not msg.tool_calls:
-                return msg.content or "Пустой ответ от субагента."
+        if not msg.tool_calls:
+            return msg.content or "Пустой ответ от субагента."
 
-            messages.append(msg)
+        messages.append(msg)
 
-            tasks = [_execute_tool(subagent, tc) for tc in msg.tool_calls]
-            results = await asyncio.gather(*tasks)
-            messages.extend(results)
+        tasks = [_execute_tool(subagent, tc) for tc in msg.tool_calls]
+        results = await asyncio.gather(*tasks)
+        messages.extend(results)
 
-            if getattr(subagent, 'is_delegated', False) or getattr(subagent, 'is_escalated', False):
-                return "Цикл прерван системно (эстафета или эскалация)."
-
-        except Exception as e:
-            subagent.add_log(f"Критическая ошибка API: {e}")
-            return f"Субагент упал с ошибкой API: {e}"
+        if getattr(subagent, 'is_delegated', False) or getattr(subagent, 'is_escalated', False):
+            return "Цикл прерван системно (эстафета или эскалация)."
 
     return "Превышен лимит шагов ReAct. Субагент принудительно остановлен."
