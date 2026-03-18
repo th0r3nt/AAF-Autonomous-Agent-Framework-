@@ -66,8 +66,8 @@ def _start_background_python_script(filename: str) -> str:
         "-e", f"MASTER_AGENT={agent_ip}", # Пробрасываем чистый IP
         "-e", f"TZ={os.getenv('TZ', 'UTC')}",
         "-v", f"{sandbox_path}:{sandbox_path}",
-        "-w", sandbox_path,                 
-        "python:3.11-slim",                             
+        "-w", sandbox_path,
+        "aaf-sandbox-base:latest",
         "python", filename                              
     ]
 

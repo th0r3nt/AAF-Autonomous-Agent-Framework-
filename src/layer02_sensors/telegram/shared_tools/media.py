@@ -10,7 +10,7 @@ from src.layer00_utils.watchdog.watchdog import userbot_telethon_module
 from src.layer00_utils.workspace import workspace_manager
 from src.layer00_utils.audio_tools import process_audio_for_llm
 from src.layer00_utils.image_tools import compress_and_encode_image
-from src.layer03_brain.llm.multimodality import describe_image_with_vision_model, transcribe_audio_with_model
+from src.layer03_brain.llm.multimodality import describe_image, transcribe_audio
 from src.layer02_sensors.telegram.shared_tools._helpers import clean_peer_id
 
 @watchdog_decorator(userbot_telethon_module)
@@ -29,7 +29,7 @@ async def tg_get_media(client: TelegramClient, chat_id: str | int, message_id: i
             img_path = workspace_manager.get_temp_file(prefix="vision_", extension=".jpg")
             await client.download_media(msg, file=str(img_path))
             b64_string = await asyncio.to_thread(compress_and_encode_image, str(img_path))
-            description = await describe_image_with_vision_model(b64_string)
+            description = await describe_image(b64_string)
             return description
             
         # 2. Стикеры и Видео (Достаем миниатюру)
@@ -45,7 +45,7 @@ async def tg_get_media(client: TelegramClient, chat_id: str | int, message_id: i
                     
                 if downloaded:
                     b64_string = await asyncio.to_thread(compress_and_encode_image, str(downloaded))
-                    description = await describe_image_with_vision_model(b64_string)
+                    description = await describe_image(b64_string)
                     return description
                 return "Не удалось извлечь изображение или миниатюру из файла."
                     
@@ -56,7 +56,7 @@ async def tg_get_media(client: TelegramClient, chat_id: str | int, message_id: i
             temp_path = workspace_manager.get_temp_file(prefix="audio_", extension=".ogg")
             await client.download_media(msg, file=str(temp_path))
             b64_data = await asyncio.to_thread(process_audio_for_llm, str(temp_path))
-            transcription = await transcribe_audio_with_model(b64_data)
+            transcription = await transcribe_audio(b64_data)
             return transcription
             
         return "Неизвестный тип медиа."

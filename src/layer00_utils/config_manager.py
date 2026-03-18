@@ -29,7 +29,8 @@ class LLMConfig(BaseModel):
     model_config = {"protected_namespaces": ()} # Это заставит Pydantic заткнуться про "model_"
     
     model_name: str
-    vision_model: str 
+    is_main_model_multimodal: bool
+    multimodal_model: str
     available_models: List[str]
     temperature: float
     max_react_steps: int

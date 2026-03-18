@@ -56,7 +56,7 @@ async def execute_once(vfs_filepath: str, timeout: int = 120) -> str:
             "-e", f"TZ={os.getenv('TZ', 'UTC')}",
             "-v", f"{sandbox_root_in_docker}:{sandbox_root_in_docker}",         
             "-w", working_dir_in_docker,
-            "python:3.11-slim",                             
+            "aaf-sandbox-base:latest",                             
             "python", script_name                              
         ]
 

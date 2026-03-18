@@ -1,4 +1,4 @@
-# 🌌 Autonomous Agent Framework (AAF) v1.2.0 [Beta]
+# 🌌 Autonomous Agent Framework (AAF) v1.2.0
 
 ![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![Docker](https://img.shields.io/badge/Docker-DinD_Ready-2496ED)

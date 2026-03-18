@@ -15,7 +15,8 @@ import src.layer03_brain.agent.skills.swarm.logic
 import src.layer03_brain.agent.skills.sandbox.logic
 import src.layer03_brain.agent.skills.memory.logic
 import src.layer03_brain.agent.skills.telegram.logic  
-import src.layer03_brain.agent.skills.vfs.logic # noqa: F401
+import src.layer03_brain.agent.skills.vfs.logic 
+import src.layer03_brain.agent.skills.multimodality.logic # noqa: F401
 
 from src.layer03_brain.agent.skills.plugins_loader import load_custom_plugins
 # Подгружаем кастомные плагины (они сольются с системными списками)

@@ -38,10 +38,19 @@ class PromptManager:
         if not l0_manifest:
             return "## L0 SKILL LIBRARY\n[Ошибка: Библиотека навыков пуста или не загружена.]"
 
-        lines = ["## L0 SKILL LIBRARY (Библиотека навыков)"]
+        lines = ["## L0 SKILL LIBRARY"]
+
+        # Импортируем конфиг для проверки мультимодальности
+        from src.layer00_utils.config_manager import config
 
         # Группируем навыки по категориям (memory, telegram, system и т.д.)
         for category, skills in l0_manifest.items():
+
+            # Если главная модель мультимодальна, прячем от неё "костыли", 
+            # чтобы сэкономить токены. Но они останутся доступны субагентам
+            if category == "multimodality" and config.llm.is_main_model_multimodal:
+                continue
+
             lines.append(f"### [{category.upper()}]")
             for skill in skills:
                 lines.append(skill)
@@ -50,7 +59,7 @@ class PromptManager:
         return "\n".join(lines).strip()
 
     def build_event_driven_prompt(self, dynamic_traits: str) -> str:
-        PERSONALITY_PARAMETERS = f"## DYNAMIC PERSONALITY PARAMETERS (приобретенные привычки и правила)\n{dynamic_traits}" if dynamic_traits else ""
+        PERSONALITY_PARAMETERS = f"## DYNAMIC PERSONALITY PARAMETERS (приобретенные черты личности)\n{dynamic_traits}" if dynamic_traits else ""
         
         prompt_parts = [
             self.SOUL,
@@ -63,7 +72,7 @@ class PromptManager:
         return "\n\n".join(filter(None, prompt_parts))
     
     def build_proactivity_prompt(self, dynamic_traits: str) -> str:
-        PERSONALITY_PARAMETERS = f"## DYNAMIC PERSONALITY PARAMETERS (приобретенные привычки и правила)\n{dynamic_traits}" if dynamic_traits else ""
+        PERSONALITY_PARAMETERS = f"## DYNAMIC PERSONALITY PARAMETERS (приобретенные черты личности)\n{dynamic_traits}" if dynamic_traits else ""
         
         prompt_parts = [
             self.SOUL,
@@ -76,7 +85,7 @@ class PromptManager:
         return "\n\n".join(filter(None, prompt_parts))
     
     def build_thoughts_prompt(self, dynamic_traits: str) -> str:
-        PERSONALITY_PARAMETERS = f"## DYNAMIC PERSONALITY PARAMETERS (приобретенные привычки и правила)\n{dynamic_traits}" if dynamic_traits else ""
+        PERSONALITY_PARAMETERS = f"## DYNAMIC PERSONALITY PARAMETERS (приобретенные черты личности)\n{dynamic_traits}" if dynamic_traits else ""
         
         prompt_parts = [
             self.SOUL,

@@ -46,7 +46,8 @@ class WebMonitor(BaseDaemon):
         super().__init__(db_record)
         self.allowed_tools = [
             "web_search", "read_webpage", "trigger_swarm_alert", "set_memory_key", "get_memory_key",
-            "delegate_task_to_swarm", "escalate_to_lead", "write_file", "read_file"
+            "delegate_task_to_swarm", "escalate_to_lead", "write_file", "read_file",
+            "analyze_local_image", "transcribe_local_file",
         ]
         self.system_prompt = f"""
 Ты фоновый Web-Daemon '{self.name}', бессмертный субагент Agent Swarm System. твой главный агент - {config.identity.agent_name}.

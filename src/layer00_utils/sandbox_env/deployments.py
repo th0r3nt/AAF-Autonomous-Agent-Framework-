@@ -39,14 +39,14 @@ async def deploy_project(vfs_path: str, project_name: str, env_vars: dict = None
             shutil.copy2(sdk_source, sdk_target)
             system_logger.debug(f"[Deployments] Системный 'agent_sdk.py' автоматически скопирован в '{project_name}'")
 
-        # 2. Автогенерация Dockerfile (если агент его не написал)
+        # 2. Автогенерация Dockerfile (если агент, чертила, его не написал)
         dockerfile_path = project_dir / "Dockerfile"
         if not dockerfile_path.exists():
             req_exists = (project_dir / "requirements.txt").exists()
             pip_install = "RUN pip install --no-cache-dir -r requirements.txt" if req_exists else ""
             
             dockerfile_content = f"""
-            FROM python:3.11-slim
+            FROM aaf-sandbox-base:latest 
             WORKDIR /app
             COPY . /app
             {pip_install}

@@ -3,14 +3,18 @@ import json
 import asyncio
 import openai
 import textwrap
+
 from src.layer00_utils.config_manager import config
 from src.layer00_utils.logger import system_logger
+from src.layer00_utils.image_tools import compress_and_encode_image
+from src.layer00_utils.env_manager import AGENT_NAME
+
 from src.layer01_datastate.sql_db.management.agent_actions import create_agent_action
 from src.layer01_datastate.sql_db.management.dialogue import create_dialogue_entry
+
 from src.layer03_brain.agent.skills.registry import skills_registry
 from src.layer03_brain.llm.client import client_openai, key_manager
 from src.layer03_brain.agent.engine.state import brain_state
-from src.layer00_utils.env_manager import AGENT_NAME
 
 LLM_MODEL = config.llm.model_name
 MAX_REACT_STEPS = config.llm.max_react_steps
@@ -324,11 +328,41 @@ async def run_react_loop(messages: list, tools: list, temperature: float) -> str
             brain_state["action"] = ", ".join(action_names)
 
             # Параллельное выполнение инструментов
-            tasks = [_execute_single_tool(tool_call) for tool_call in response_message.tool_calls]
+            tasks =[_execute_single_tool(tool_call) for tool_call in response_message.tool_calls]
             tool_results = await asyncio.gather(*tasks)
 
-            # Добавляем результаты в историю сообщений
+            # Добавляем результаты в историю сообщений (с перехватом медиа-инъекций)
             for res in tool_results:
+                content = res.get("content", "")
+                
+                # Ловим магический тег от read_local_media
+                if isinstance(content, str) and content.startswith("__MEDIA_INJECTION_REQUEST__:"):
+                    filepath = content.split(":", 1)[1]
+                    
+                    try:
+                        # Получаем base64 картинки
+                        b64_string = await asyncio.to_thread(compress_and_encode_image, filepath)
+                        
+                        # Удовлетворяем API: отдаем инструменту текстовый ответ
+                        res["content"] = f"Медиафайл '{filepath}' успешно передан."
+                        messages.append(res)
+                        
+                        # Хак: мгновенно вбрасываем системное user-сообщение с самой картинкой, чтобы мультимодальный мозг понял
+                        messages.append({
+                            "role": "user",
+                            "content":[
+                                {"type": "text", "text": f"[Содержимое файла {filepath}]"},
+                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_string}"}}
+                            ]
+                        })
+                        continue # Идем к следующему инструменту, этот обработан
+                        
+                    except Exception as e:
+                        res["content"] = f"Ошибка при попытке получения медиафайла '{filepath}': {e}"
+                        messages.append(res)
+                        continue
+
+                # Обычные текстовые ответы инструментов
                 messages.append(res)
 
     except openai.APITimeoutError:

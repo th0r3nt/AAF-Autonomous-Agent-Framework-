@@ -6,14 +6,21 @@ identity:
 
 llm:
   model_name: "gemini-flash-latest"
-  vision_model: "gemini-3.1-flash-lite-preview"
+  is_main_model_multimodal: true # Если у model_name поддерживается мультимодальность - ставьте true, В противном случае - false
+
+  multimodal_model: "gemini-3.1-flash-lite-preview" # Подмодель, которая будет использоваться для понимания мультимодальности 
+  # (в случае того, если is_main_model_multimodal: false)
+
   available_models:
-    - "gemini-3.1-pro-high"
-    - "gemini-flash-latest"
+    - "gemini-3.1-pro-preview"
+    - "gemini-3.1-flash-lite-preview"
+    - "gemini-3-flash-preview"
     - "gpt-5.4"
     - "claude-opus-4-6"
+    # ...можете добавлять свои
+
   temperature: 0.7
-  max_react_steps: 15
+  max_react_steps: 15 # Для главного мозга
 
   limits:
     max_file_read_chars: 80000 # Макс. количество символов при чтении файлов в Sandbox

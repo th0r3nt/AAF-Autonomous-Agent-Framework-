@@ -74,6 +74,42 @@ def check_docker():
         print(f"{R}[X] Docker не запущен или не установлен!{W}")
         sys.exit(1)
 
+def build_sandbox_base(force_rebuild=False):
+    """Создает базовый образ для песочницы со всеми нужными утилитами (ffmpeg, curl, и т.д.)"""
+    image_name = "aaf-sandbox-base:latest"
+    
+    if not force_rebuild:
+        # Проверяем, существует ли уже образ
+        result = subprocess.run(["docker", "images", "-q", image_name], capture_output=True, text=True)
+        if result.stdout.strip():
+            return # Образ уже есть, пропускаем
+
+    print(f"{Y}[i] Сборка базового образа песочницы ({image_name}).{W}")
+    dockerfile_content = """
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y \\
+    ffmpeg \\
+    curl \\
+    wget \\
+    git \\
+    build-essential \\
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+"""
+    
+    with open("Dockerfile.sandbox", "w", encoding="utf-8") as f:
+        f.write(dockerfile_content.strip())
+        
+    try:
+        subprocess.run(["docker", "build", "-t", image_name, "-f", "Dockerfile.sandbox", "."], check=True)
+        print(f"{G}[V] Базовый образ песочницы успешно собран.{W}")
+    except subprocess.CalledProcessError:
+        print(f"{R}[X] Ошибка при сборке базового образа песочницы.{W}")
+        sys.exit(1)
+    finally:
+        if os.path.exists("Dockerfile.sandbox"):
+            os.remove("Dockerfile.sandbox")
+
 def run_cmd(cmd, hide_output=False):
     if hide_output:
         subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -256,7 +292,7 @@ def create_agent(name: str):
     def copy_template(src_rel_path, dest_abs_path, replace_name=False):
         src_path = os.path.join("templates", src_rel_path)
         if not os.path.exists(src_path):
-            print(f"{Y}[!] Внимание: Шаблон '{src_path}' не найден! Пропущен.{W}")
+            print(f"{Y}[!] Внимание: Шаблон '{src_path}' не найден. Пропущен.{W}")
             return
             
         with open(src_path, "r", encoding="utf-8") as f:
@@ -328,7 +364,7 @@ def cmd_auth(agent_name: str):
     try:
         from telethon import TelegramClient
     except ImportError:
-        print(f"{Y}Устанавливаю Telethon для локальной авторизации...{W}")
+        print(f"{Y}Установка Telethon для локальной авторизации.{W}")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "telethon"])
         from telethon import TelegramClient
 
@@ -440,7 +476,7 @@ def cmd_delete(agent_name: str):
 def process_command(args_list):
     """Обрабатывает список аргументов (из консоли или интерактивного ввода)"""
     parser = argparse.ArgumentParser(description="AAF Swarm Manager (v1.1.0)", exit_on_error=False)
-    parser.add_argument("command", choices=["status", "create", "auth", "start", "stop", "restart", "delete", "logs", "generate", "help", "exit", "quit"], help="Команда для выполнения")
+    parser.add_argument("command", choices=["status", "create", "auth", "start", "stop", "restart", "rebuild", "delete", "logs", "generate", "help", "exit", "quit"], help="Команда для выполнения")
     parser.add_argument("agent", nargs="?", help="Имя агента (или 'all')")
     
     try:
@@ -460,6 +496,7 @@ def process_command(args_list):
         print(f"  {G}start <NAME | all>{W}   - Запустить агента (или всех)")
         print(f"  {G}stop <NAME | all>{W}    - Остановить агента (или всех)")
         print(f"  {G}restart <NAME | all>{W} - Перезапустить агента (или всех)")
+        print(f"  {G}rebuild <NAME | all>{W} - Чистая пересборка (без кэша Docker) при системных ошибках")
         print(f"  {G}delete <NAME>{W}        - Полностью удалить профиль агента")
         print(f"  {G}logs <NAME>{W}          - Смотреть логи агента в реальном времени")
         print(f"  {G}generate{W}             - Пересобрать docker-compose.yml")
@@ -488,6 +525,7 @@ def process_command(args_list):
     elif args.command == "start":
         check_and_download_models()
         check_docker()
+        build_sandbox_base(force_rebuild=False)
 
         agent_target = args.agent if args.agent else "all"
         patch_agent_configs(agent_target)
@@ -511,6 +549,31 @@ def process_command(args_list):
             print(f"{Y}Остановка агента {args.agent.upper()}...{W}")
             run_cmd(f"docker compose stop {alias}")
 
+            # Авто-остановка инфраструктуры
+            agents_dir = "Agents"
+            if os.path.exists(agents_dir):
+                # Получаем список всех профилей агентов
+                agents =[d for d in os.listdir(agents_dir) if os.path.isdir(os.path.join(agents_dir, d))]
+                
+                # Получаем список имен всех запущенных Docker-контейнеров
+                result = subprocess.run(["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True)
+                running_names =[name for name in result.stdout.strip().split('\n') if name]
+                
+                # Проверяем, есть ли среди запущенных контейнеров хоть один агент
+                any_agent_running = False
+                for ag in agents:
+                    check_alias = f"agent_{ag.lower()}"
+                    if any(check_alias in name for name in running_names):
+                        any_agent_running = True
+                        break
+                        
+                # Если живых агентов нет - тушим базы и DIND
+                if not any_agent_running:
+                    print(f"\n{C}[i] В системе больше нет активных агентов.{W}")
+                    print(f"{Y}Автоматическая остановка PostgreSQL и Sandbox...{W}")
+                    # Команда 'docker compose stop' без аргументов остановит всё оставшееся по списку из yml
+                    run_cmd("docker compose stop")
+
     elif args.command == "restart":
         check_docker()
         if not args.agent or args.agent.lower() == "all":
@@ -520,6 +583,26 @@ def process_command(args_list):
             alias = f"agent_{args.agent.lower()}"
             print(f"{Y}Перезапуск агента {args.agent.upper()}...{W}")
             run_cmd(f"docker compose restart {alias}")
+
+    elif args.command == "rebuild":
+        check_and_download_models()
+        check_docker()
+        build_sandbox_base(force_rebuild=True)
+
+        agent_target = args.agent if args.agent else "all"
+        patch_agent_configs(agent_target)
+        generate_docker_compose()
+
+        if not args.agent or args.agent.lower() == "all":
+            print(f"{Y}Принудительная чистая пересборка всех образов без кэша... Это займет время.{W}")
+            run_cmd("docker compose build --no-cache")
+            run_cmd("docker compose up -d")
+        else:
+            alias = f"agent_{args.agent.lower()}"
+            print(f"{Y}Принудительная чистая пересборка агента {args.agent.upper()} без кэша...{W}")
+            run_cmd(f"docker compose build --no-cache {alias}")
+            print(f"{C}Запуск агента {args.agent.upper()}...{W}")
+            run_cmd(f"docker compose up -d {alias}")
 
     elif args.command == "delete":
         if not args.agent:
