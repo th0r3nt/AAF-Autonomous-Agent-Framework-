@@ -162,56 +162,51 @@ async def get_full_graph() -> str:
 async def delete_from_graph(source_node: str, target_node: str = None) -> str:
     """
     Удаляет узел (и все его связи) ИЛИ конкретную связь между двумя узлами.
-    Использует строгое совпадение имен для предотвращения случайного удаления важных узлов.
+    Использует эвристику (threshold=95) для прощения опечаток регистра.
     """
     def _sync_delete():
         if not graph_db.conn:
             return "Графовая база данных недоступна."
             
-        # Убираем _resolve_entity, используем строго точное имя, переданное агентом
-        resolved_source = source_node.strip()
+        # Используем _resolve_entity с высоким порогом (95%), 
+        # чтобы прощать мелкие опечатки (например "openclaw" вместо "OpenClaw"),
+        # но не удалить случайно "OpenAI" вместо "OpenMOSS".
+        resolved_source = _resolve_entity(source_node.strip(), threshold=95)
         
-        # Проверяем, существует ли узел с таким точным именем
+        # Проверяем, существует ли узел
         res = graph_db.conn.execute("MATCH (n:Concept {name: $name}) RETURN n.name", {"name": resolved_source}).get_as_df()
         if res.empty:
-            return f"Отмена удаления: Узел с точным именем '{resolved_source}' не найден в графе. Используйте инструмент explore_graph или get_full_graph, чтобы узнать точное имя узла перед удалением."
+            return f"Отмена удаления: Узел '{source_node}' (или похожий на него) не найден в графе. Используйте инструмент explore_graph или get_full_graph, чтобы узнать точное имя узла."
             
         # Сценарий 1: Удаляем конкретную связь между двумя узлами
         if target_node:
-            resolved_target = target_node.strip()
+            resolved_target = _resolve_entity(target_node.strip(), threshold=95)
             
             # Проверяем существование второго узла
             res_tgt = graph_db.conn.execute("MATCH (n:Concept {name: $name}) RETURN n.name", {"name": resolved_target}).get_as_df()
             if res_tgt.empty:
-                return f"Отмена удаления: Целевой узел '{resolved_target}' не найден в графе."
+                return f"Отмена удаления: Целевой узел '{target_node}' не найден в графе."
             
-            # KuzuDB требует строгого указания направления связи при удалении.
-            # Так как мы не знаем, кто на кого ссылается, бьем в обе стороны:
-            q_out = "MATCH (a:Concept {name: $src})-[r:Link]->(b:Concept {name: $tgt}) DELETE r"
-            q_in = "MATCH (a:Concept {name: $src})<-[r:Link]-(b:Concept {name: $tgt}) DELETE r"
-            
-            graph_db.conn.execute(q_out, {"src": resolved_source, "tgt": resolved_target})
-            graph_db.conn.execute(q_in, {"src": resolved_source, "tgt": resolved_target})
+            # Оптимизация KuzuDB: используем ненаправленную связь `-[r:Link]-`
+            # Это заменяет два раздельных запроса (туда и обратно) на один элегантный
+            q_delete_rel = "MATCH (a:Concept {name: $src})-[r:Link]-(b:Concept {name: $tgt}) DELETE r"
+            graph_db.conn.execute(q_delete_rel, {"src": resolved_source, "tgt": resolved_target})
             
             system_logger.info(f"[Graph DB] Удалена связь между '{resolved_source}' и '{resolved_target}'.")
             return f"Связи между '{resolved_source}' и '{resolved_target}' успешно очищены."
             
         # Сценарий 2: Удаляем узел полностью
         else:
-            # Сначала удаляем исходящие связи (со стрелочкой ОТ узла)
-            graph_db.conn.execute("MATCH (n:Concept {name: $name})-[r:Link]->() DELETE r", {"name": resolved_source})
+            # Оптимизация KuzuDB: удаляем все связи узла (входящие и исходящие) одним ненаправленным запросом
+            graph_db.conn.execute("MATCH (n:Concept {name: $name})-[r:Link]-() DELETE r", {"name": resolved_source})
             
-            # Затем удаляем входящие связи (со стрелочкой К узлу)
-            graph_db.conn.execute("MATCH ()-[r:Link]->(n:Concept {name: $name}) DELETE r", {"name": resolved_source})
-            
-            # И только теперь, когда связей нет, KuzuDB разрешит удалить сам узел
+            # И только теперь, когда связей больше нет, KuzuDB разрешит безопасно удалить сам узел
             graph_db.conn.execute("MATCH (n:Concept {name: $name}) DELETE n", {"name": resolved_source})
             
             system_logger.info(f"[Graph DB] Полностью удален узел '{resolved_source}' и все его связи.")
             return f"Узел '{resolved_source}' и все его связи успешно стерты из графа."
 
     return await asyncio.to_thread(_sync_delete)
-
 
 @watchdog_decorator(graph_db_module)
 async def get_associated_node_names(node_names: list, limit_per_node: int = 2) -> list:

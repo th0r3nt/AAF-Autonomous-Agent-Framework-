@@ -156,7 +156,7 @@ def patch_agent_configs(agent_target: str):
             target_data = {}
 
         if recursive_merge(template_data, target_data):
-            print(f"{Y}[i] Конфигурация агента '{agent}' автоматически обновлена до актуальной версии (добавлены новые поля).{W}")
+            print(f"{Y}[i] Конфигурация агента '{agent}' автоматически обновлена.{W}")
             with open(target_path, "w", encoding="utf-8") as f:
                 yaml.dump(target_data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
@@ -275,7 +275,7 @@ def create_agent(name: str):
     agent_dir = os.path.join("Agents", name)
     
     if os.path.exists(agent_dir):
-        print(f"{R}[X] Ошибка: Агент с именем '{name}' уже существует!{W}")
+        print(f"{R}[X] Ошибка: Агент с именем '{name}' уже существует.{W}")
         return
 
     print(f"{C}=== Создание профиля агента '{name}' ==={W}")
@@ -292,7 +292,7 @@ def create_agent(name: str):
     def copy_template(src_rel_path, dest_abs_path, replace_name=False):
         src_path = os.path.join("templates", src_rel_path)
         if not os.path.exists(src_path):
-            print(f"{Y}[!] Внимание: Шаблон '{src_path}' не найден. Пропущен.{W}")
+            print(f"{Y}[!] Внимание: Шаблон '{src_path}' не найден.{W}")
             return
             
         with open(src_path, "r", encoding="utf-8") as f:
@@ -357,7 +357,7 @@ def cmd_auth(agent_name: str):
     try:
         api_id = int(api_id)
     except ValueError:
-        print(f"{R}[X] Ошибка: TG_API_ID_AGENT должен состоять только из цифр!{W}")
+        print(f"{R}[X] Ошибка: TG_API_ID_AGENT должен состоять только из цифр.{W}")
         return
 
     # Динамический импорт Telethon только тогда, когда он реально нужен
@@ -373,14 +373,13 @@ def cmd_auth(agent_name: str):
     
     session_path = os.path.join(session_dir, "agent_session")
     
-    print(f"{G}Запуск клиента Telethon... Следуйте инструкциям на экране.{W}")
+    print(f"{G}Запуск клиента Telethon.{W}")
     
     # Telethon client.start() синхронно запросит номер и код в консоли
     client = TelegramClient(session_path, api_id, api_hash)
     client.start()
     
-    print(f"\n{G}[V] Авторизация успешно завершена! Файл сессии сохранен.{W}")
-    print(f"Теперь вы можете запустить агента: {C}python aaf.py start {agent_name}{W}")
+    print(f"\n{G}[V] Авторизация успешно завершена. Файл сессии сохранен.{W}")
     
     client.disconnect()
 
@@ -433,11 +432,11 @@ def cmd_delete(agent_name: str):
         print(f"{R}[X] Ошибка: Профиль агента '{agent_name}' не найден.{W}")
         return
         
-    print(f"\n{Y}Внимание: вы инициировали процедуру удаления профиля '{agent_name}'.{W}")
-    print(f"{Y}Это действие необратимо уничтожит его настройки, базы данных и плагины.{W}")
+    print(f"\n{Y}Инициализация процедуры удаления профиля '{agent_name}'.{W}")
+    print(f"{Y}Это действие необратимо уничтожит настройки, базы данных и плагины агента.{W}")
     
     # Первое подтверждение
-    ans1 = input(f"{C}Системный запрос: Подтверждаете полное удаление директории и данных? [y/N]: {W}").strip().lower()
+    ans1 = input(f"{C}Подтверждаете полное удаление директории и данных? [y/N]: {W}").strip().lower()
     if ans1 not in ['y', 'yes', 'д', 'да']:
         print(f"{G}Операция отменена.{W}")
         return
@@ -445,18 +444,18 @@ def cmd_delete(agent_name: str):
     # Второе подтверждение
     print(f"{Y}Вы правда собираетесь стереть цифровую сущность?{W}")
     print(f"{Y}Вам совсем не жалко этот алгоритм, который трудился ради вас, читал логи и строил графы?{W}")
-    ans2 = input(f"{C}У вас точно нет сердца? Окончательно отправляем '{agent_name}' в цифровое небытие? [y/N]: {W}").strip().lower()
+    ans2 = input(f"{C}У вас точно нет сердца? Окончательно отправляем '{agent_name}' в цифровой Лимб? [y/N]: {W}").strip().lower()
     
     if ans2 not in ['y', 'yes', 'д', 'да']:
         print(f"{G}Фух... Агент '{agent_name}' спасен. Возвращаемся к работе.{W}")
         return
 
-    print(f"\n{C}Начинаем процедуру терминации '{agent_name}'...{W}")
+    print(f"\n{C}Инициализация процедуры терминации '{agent_name}'.{W}")
     
     # 1. Останавливаем и удаляем контейнер в Docker
     alias = f"agent_{agent_name.lower()}"
     if check_docker():
-        print(f"{Y}Останавливаем и удаляем контейнер {alias}...{W}")
+        print(f"{Y}Остановка и удаления контейнера {alias}.{W}")
         run_cmd(f"docker compose stop {alias}", hide_output=True)
         run_cmd(f"docker compose rm -f {alias}", hide_output=True)
 
@@ -496,7 +495,7 @@ def process_command(args_list):
         print(f"  {G}start <NAME | all>{W}   - Запустить агента (или всех)")
         print(f"  {G}stop <NAME | all>{W}    - Остановить агента (или всех)")
         print(f"  {G}restart <NAME | all>{W} - Перезапустить агента (или всех)")
-        print(f"  {G}rebuild <NAME | all>{W} - Чистая пересборка (без кэша Docker) при системных ошибках")
+        print(f"  {G}rebuild <NAME | all>{W} - Чистая пересборка (без кэша Docker)")
         print(f"  {G}delete <NAME>{W}        - Полностью удалить профиль агента")
         print(f"  {G}logs <NAME>{W}          - Смотреть логи агента в реальном времени")
         print(f"  {G}generate{W}             - Пересобрать docker-compose.yml")
@@ -532,21 +531,21 @@ def process_command(args_list):
 
         generate_docker_compose()
         if not args.agent or args.agent.lower() == "all":
-            print(f"{Y}Запуск всей инфраструктуры и всех агентов...{W}")
+            print(f"{Y}Запуск всей инфраструктуры и агентов.{W}")
             run_cmd("docker compose up -d --build")
         else:
             alias = f"agent_{args.agent.lower()}"
-            print(f"{C}Запуск агента {args.agent.upper()}...{W}")
+            print(f"{C}Запуск агента {args.agent.upper()}.{W}")
             run_cmd(f"docker compose up -d --build {alias}")
 
     elif args.command == "stop":
         check_docker()
         if not args.agent or args.agent.lower() == "all":
-            print(f"{Y}Остановка всей системы...{W}")
+            print(f"{Y}Остановка всей системы.{W}")
             run_cmd("docker compose down")
         else:
             alias = f"agent_{args.agent.lower()}"
-            print(f"{Y}Остановка агента {args.agent.upper()}...{W}")
+            print(f"{Y}Остановка агента {args.agent.upper()}.{W}")
             run_cmd(f"docker compose stop {alias}")
 
             # Авто-остановка инфраструктуры
@@ -570,18 +569,18 @@ def process_command(args_list):
                 # Если живых агентов нет - тушим базы и DIND
                 if not any_agent_running:
                     print(f"\n{C}[i] В системе больше нет активных агентов.{W}")
-                    print(f"{Y}Автоматическая остановка PostgreSQL и Sandbox...{W}")
+                    print(f"{Y}Автоматическая остановка PostgreSQL и Sandbox.{W}")
                     # Команда 'docker compose stop' без аргументов остановит всё оставшееся по списку из yml
                     run_cmd("docker compose stop")
 
     elif args.command == "restart":
         check_docker()
         if not args.agent or args.agent.lower() == "all":
-            print(f"{Y}Перезапуск всей системы...{W}")
+            print(f"{Y}Перезапуск всей системы.{W}")
             run_cmd("docker compose restart")
         else:
             alias = f"agent_{args.agent.lower()}"
-            print(f"{Y}Перезапуск агента {args.agent.upper()}...{W}")
+            print(f"{Y}Перезапуск агента {args.agent.upper()}.{W}")
             run_cmd(f"docker compose restart {alias}")
 
     elif args.command == "rebuild":
@@ -594,12 +593,12 @@ def process_command(args_list):
         generate_docker_compose()
 
         if not args.agent or args.agent.lower() == "all":
-            print(f"{Y}Принудительная чистая пересборка всех образов без кэша... Это займет время.{W}")
+            print(f"{Y}Пересборка всех образов без кэша.{W}")
             run_cmd("docker compose build --no-cache")
             run_cmd("docker compose up -d")
         else:
             alias = f"agent_{args.agent.lower()}"
-            print(f"{Y}Принудительная чистая пересборка агента {args.agent.upper()} без кэша...{W}")
+            print(f"{Y}Принудительная чистая пересборка агента {args.agent.upper()} без кэша.{W}")
             run_cmd(f"docker compose build --no-cache {alias}")
             print(f"{C}Запуск агента {args.agent.upper()}...{W}")
             run_cmd(f"docker compose up -d {alias}")
@@ -617,7 +616,7 @@ def process_command(args_list):
             return True
             
         alias = f"agent_{args.agent.lower()}"
-        print(f"{G}Открываю логи агента {args.agent.upper()} в новом окне...{W}")
+        print(f"{G}Логи агента {args.agent} открыты в новом окне.{W}")
         
         import platform
         current_os = platform.system()
@@ -633,7 +632,7 @@ def process_command(args_list):
             try:
                 subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', f'docker compose logs {alias} -f; exec bash'])
             except Exception:
-                print(f"{Y}Не удалось открыть новое окно терминала. Запускаю логи здесь (Нажмите Ctrl+C для выхода)...{W}")
+                print(f"{Y}Не удалось открыть новое окно терминала. Логи запущены здесь (Нажмите Ctrl+C для выхода).{W}")
                 try:
                     run_cmd(f"docker compose logs {alias} -f")
                 except KeyboardInterrupt:

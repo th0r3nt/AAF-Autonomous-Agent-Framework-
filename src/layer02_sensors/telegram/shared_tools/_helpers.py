@@ -1,10 +1,22 @@
 def clean_peer_id(chat_id: str | int) -> str | int:
-    """
-    Убирает дублирование кода. Конвертирует строковый ID (содержащий только цифры и минус) в int.
-    Если это @username, оставляет строкой.
-    """
-    if isinstance(chat_id, str) and chat_id.lstrip('-').isdigit():
+    """Конвертирует ID, очищает @username и вытаскивает юзернейм из ссылок t.me"""
+    if isinstance(chat_id, int):
+        return chat_id
+        
+    chat_id = chat_id.strip()
+    
+    # Защита от дурака (нейросети): Агент передал ссылку
+    if "t.me/" in chat_id:
+        chat_id = chat_id.split("t.me/")[-1].split("/")[0].split("?")[0]
+        
+    # Если это юзернейм с собачкой - убираем её
+    if chat_id.startswith("@"):
+        chat_id = chat_id[1:]
+        
+    # Если это просто цифры (возможно с минусом) - конвертируем в int
+    if chat_id.lstrip('-').isdigit():
         return int(chat_id)
+        
     return chat_id
 
 def _get_content(msg):

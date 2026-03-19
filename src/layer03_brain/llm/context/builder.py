@@ -122,6 +122,11 @@ class ContextBuilder:
             project = kwargs.get("project", "Unknown")
             status = kwargs.get("status", "Unknown")
             details.append(f"Микросервис '{project}' упал. Статус: {status}.")
+
+        elif event.name == "EXTERNAL_WEBHOOK_RECEIVED":
+            topic = kwargs.get("topic_name", "Unknown")
+            payload = kwargs.get("payload", "Пусто")
+            details.append(f"[Входящий Webhook | Топик: {topic}]: Данные: {payload}")
             
         else:
             if args: 

@@ -39,11 +39,20 @@ class WorkspaceManager:
             
         clean_path = vfs_path.replace("\\", "/").strip("/")
         
-        # 1. Защита от .env
+        # Защита от дурака (нейросети): Если агент прислал абсолютный путь из логов
+        # Вырезаем всё до слова sandbox или src
+        if "/workspace/sandbox/" in clean_path:
+            clean_path = "sandbox/" + clean_path.split("/workspace/sandbox/")[-1]
+        elif "/src/" in clean_path:
+            clean_path = "src/" + clean_path.split("/src/")[-1]
+        elif clean_path.startswith("file:///"):
+            clean_path = clean_path.replace("file:///", "")
+        
+        # Защита от .env
         if ".env" in clean_path.split("/") or clean_path.endswith(".env"):
             raise PermissionError("Security: Доступ к файлам окружения (.env) строго запрещен.")
 
-        # 2. Умный маппинг псевдонимов (чтобы агенту не нужно было писать Agents/VEGA/workspace/...)
+        # Умный маппинг псевдонимов (чтобы агенту не нужно было писать Agents/VEGA/workspace/...)
         if clean_path == "sandbox" or clean_path.startswith("sandbox/"):
             rel_part = clean_path[len("sandbox"):].strip("/")
             target_path = (self.sandbox_dir / rel_part).resolve()

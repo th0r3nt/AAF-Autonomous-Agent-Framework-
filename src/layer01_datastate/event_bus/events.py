@@ -126,6 +126,13 @@ class Events:
         level=EventLevel.HIGH,
     )
 
+    EXTERNAL_WEBHOOK_RECEIVED = EventConfig(
+        name="EXTERNAL_WEBHOOK_RECEIVED",
+        description="Внешняя система прислала данные на сгенерированный агентом webhook-URL",
+        requires_attention=True,
+        level=EventLevel.HIGH, 
+    )
+
 
     # ============================================
     # Deployments

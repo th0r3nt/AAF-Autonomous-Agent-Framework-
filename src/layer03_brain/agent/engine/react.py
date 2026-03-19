@@ -127,23 +127,33 @@ async def _execute_single_tool(tool_call) -> dict:
 
     target_func = skills_registry[skill_uri]
 
-    # МАГИЯ АВТО-КАСТА ТИПОВ
+    # АВТО КАСТ ТИПОВ
     try:
+        import ast
         sig = inspect.signature(target_func)
         for param_name, param in sig.parameters.items():
             if param_name in args:
                 val = args[param_name]
-                # Если функция ждет int, а LLM прислала строку "5"
-                if param.annotation is int and isinstance(val, str):
-                    clean_val = val.strip().lstrip('-')
-                    if clean_val.isdigit():
-                        args[param_name] = int(val)
-                # Если функция ждет bool, а прислала строку "true"
+                
+                # ЗАЩИТА ОТ ДУРАКА 4: Агент передал dict/list как строку
+                if param.annotation in [dict, list] and isinstance(val, str):
+                    try:
+                        # Пробуем безопасно распарсить строку в объект
+                        args[param_name] = ast.literal_eval(val)
+                    except Exception:
+                        pass # Оставляем как есть, если не вышло
+                        
+                # Каст для int
+                elif param.annotation is int and isinstance(val, (str, float)):
+                    args[param_name] = int(float(val))
+                # Каст для float
+                elif param.annotation is float and isinstance(val, str):
+                    args[param_name] = float(val)
+                # Каст для bool
                 elif param.annotation is bool and isinstance(val, str):
-                    args[param_name] = val.lower() in['true', '1', 'yes']
-    except Exception as e:
-        system_logger.debug(f"[Agent Action] Ошибка при автокасте типов: {e}")
-    # --------------------------------
+                    args[param_name] = val.lower() in ['true', '1', 'yes']
+    except Exception:
+        pass
 
     result = None
     limit = 400

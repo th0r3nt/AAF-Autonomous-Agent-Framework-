@@ -54,14 +54,24 @@ async def _execute_tool(subagent, tool_call):
     if skill_uri in system_tools_registry:
         target_func = system_tools_registry[skill_uri]
         
-        # МАГИЯ АВТО-КАСТА ТИПОВ
+        # АВТО-КАСТ ТИПОВ
         try:
+            import ast
             sig = inspect.signature(target_func)
             for param_name, param in sig.parameters.items():
                 if param_name in args:
                     val = args[param_name]
+                    
+                    # ЗАЩИТА ОТ ДУРАКА 4: Агент передал dict/list как строку
+                    if param.annotation in [dict, list] and isinstance(val, str):
+                        try:
+                            # Пробуем безопасно распарсить строку в объект
+                            args[param_name] = ast.literal_eval(val)
+                        except Exception:
+                            pass # Оставляем как есть, если не вышло
+                            
                     # Каст для int
-                    if param.annotation is int and isinstance(val, (str, float)):
+                    elif param.annotation is int and isinstance(val, (str, float)):
                         args[param_name] = int(float(val))
                     # Каст для float
                     elif param.annotation is float and isinstance(val, str):
@@ -90,14 +100,24 @@ async def _execute_tool(subagent, tool_call):
              
         target_func = skills_registry[skill_uri]
 
-        # МАГИЯ АВТО-КАСТА ТИПОВ
+        # АВТО КАСТ ТИПОВ
         try:
+            import ast
             sig = inspect.signature(target_func)
             for param_name, param in sig.parameters.items():
                 if param_name in args:
                     val = args[param_name]
+                    
+                    # ЗАЩИТА ОТ ДУРАКА 4: Агент передал dict/list как строку
+                    if param.annotation in [dict, list] and isinstance(val, str):
+                        try:
+                            # Пробуем безопасно распарсить строку в объект
+                            args[param_name] = ast.literal_eval(val)
+                        except Exception:
+                            pass # Оставляем как есть, если не вышло
+                            
                     # Каст для int
-                    if param.annotation is int and isinstance(val, (str, float)):
+                    elif param.annotation is int and isinstance(val, (str, float)):
                         args[param_name] = int(float(val))
                     # Каст для float
                     elif param.annotation is float and isinstance(val, str):

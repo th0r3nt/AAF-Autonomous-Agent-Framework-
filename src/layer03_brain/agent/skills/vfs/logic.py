@@ -1,5 +1,6 @@
 import asyncio 
 import shutil
+import re
 from pathlib import Path
 from src.layer00_utils.workspace import workspace_manager
 from src.layer03_brain.agent.skills.auto_schema import llm_skill
@@ -45,6 +46,14 @@ def read_file(filepath: str) -> str:
 )
 async def write_file(filepath: str, content: str) -> str:
     try:
+        # Защита от дурака (нейросети): Очистка Markdown-блоков для файлов кода
+        if filepath.endswith(('.py', '.json', '.yaml', '.yml', '.sh', '.txt', '.md')):
+            # Ищем паттерн ```python ... ``` или просто ``` ... ```
+            md_pattern = re.compile(r'^```[a-zA-Z]*\n(.*?)\n```$', re.DOTALL)
+            match = md_pattern.search(content.strip())
+            if match:
+                content = match.group(1)
+
         target_path = workspace_manager.resolve_vfs_path(filepath, mode='write')
         
         def _write():
