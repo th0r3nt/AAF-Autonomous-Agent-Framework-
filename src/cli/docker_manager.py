@@ -5,7 +5,7 @@ from src.cli import ui
 
 # Корень проекта, где лежит docker-compose.yml
 current_dir = Path(__file__).resolve()
-project_root = current_dir.parents[3]
+project_root = current_dir.parents[2]
 
 def _run_cmd(cmd: list, cwd: Path) -> subprocess.CompletedProcess:
     """Вспомогательная функция для запуска shell-команд."""

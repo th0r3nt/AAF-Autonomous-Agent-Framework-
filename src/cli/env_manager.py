@@ -6,7 +6,7 @@ from src.cli import ui
 
 # Вычисляем корень проекта
 current_dir = Path(__file__).resolve()
-project_root = current_dir.parents[3]
+project_root = current_dir.parents[2]
 env_path = project_root / ".env"
 env_example_path = project_root / ".env.example"
 

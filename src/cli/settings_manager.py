@@ -4,7 +4,7 @@ from pathlib import Path
 from src.cli import ui
 
 current_dir = Path(__file__).resolve()
-config_dir = current_dir.parents[3] / "agent" / "config"
+config_dir = current_dir.parents[2] / "agent" / "config" 
 settings_path = config_dir / "settings.yaml"
 settings_example = config_dir / "settings.example.yaml"
 

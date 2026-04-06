@@ -4,7 +4,7 @@ from src.cli import ui
 
 current_dir = Path(__file__).resolve()
 # Указываем на папку agent/prompt
-prompt_dir = current_dir.parents[3] / "agent" / "prompt"
+prompt_dir = current_dir.parents[2] / "agent" / "prompt"
 
 FILES_TO_CHECK = [
     ("SOUL.md", "SOUL.example.md"),

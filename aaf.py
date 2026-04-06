@@ -98,7 +98,7 @@ def interactive_menu():
 
         # Обработка выбора
         if choice.startswith("🚀"):
-            ui.info("Запуск полного стека AAF...")
+            ui.info("Запуск полного стека AAF.")
             conductor.run_startup_sequence(dev_mode=False)
 
         elif choice.startswith("⏹️"):

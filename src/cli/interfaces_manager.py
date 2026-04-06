@@ -7,7 +7,7 @@ from src.cli import ui
 from src.cli import env_manager
 
 current_dir = Path(__file__).resolve()
-config_dir = current_dir.parents[3] / "agent" / "config"
+config_dir = current_dir.parents[2] / "agent" / "config"
 interfaces_path = config_dir / "interfaces.yaml"
 interfaces_example = config_dir / "interfaces.example.yaml"
 
