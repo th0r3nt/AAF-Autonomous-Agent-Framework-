@@ -8,46 +8,34 @@ env/
 .DS_Store
 Thumbs.db
 
-# Мульти-агентная структура (v1.1.0)
-Agents/
-docker-compose.yml
-
-# Конфиги/настройки/ключи
+# Конфиги /настройки/ключи
 .env
-config/settings.yaml
-config/personality/
+agent/config/settings.yaml
+agent/config/interfaces.yaml
+agent/llm/api_keys/api_keys_state.json
+api_keys_state.json
 
-# Базы данных (ChromaDB, KuzuDB) и сессии Telegram
-workspace/_data/*
-!workspace/_data/.gitkeep
+# Базы данных и сессии
+agent/data/chroma_db/
+agent/data/kuzu_db/
+agent/data/telegram_sessions/
+agent/data/shadow_backups/
 
-# Песочница (оставляем только agent_sdk.py)
-workspace/sandbox/*
-!workspace/sandbox/.gitkeep
-!workspace/sandbox/agent_sdk.py
+# Разрешаем Git видеть .gitkeep в пустых папках
+!**/ .gitkeep
 
-# Временные файлы
-workspace/temp/*
-!workspace/temp/.gitkeep
+# Sandbox
+agent/sandbox/*
+!agent/sandbox/.gitkeep
+agent/temp/*
 
-# Файлы состояний агента
-workspace/api_keys_state.json
-workspace/sandbox/sandbox_state.json
-
-# Тяжелые файлы
-src/layer00_utils/local_models/
-src/layer00_utils/vosk_model/
+# Тяжелые локальные модели (Исправлено: добавлена 'l')
+src/l00_utils/local/
 
 # Логи
-src/logs/*
-!src/logs/.gitkeep
-logs/
-
-# Сгенерированные аудиофайлы TTS
-src/layer00_utils/phrases/*
-!src/layer00_utils/phrases/.gitkeep
+logs/*.log
+logs/last_*_context.md
 
 # Утилиты
-TODO.md
-copy_all_code.py
-all_code.txt
+docs/
+scripts/

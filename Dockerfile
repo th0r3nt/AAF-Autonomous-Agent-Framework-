@@ -1,46 +1,40 @@
-# Используем официальный легкий образ Python
+# Используем Debian-based slim образ. Alpine ломает сборку ChromaDB, Kuzu и PyTorch
 FROM python:3.11-slim
 
+# Настройки Python
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
 # Устанавливаем системные зависимости
-# ffmpeg - для работы с аудио (Vosk/EdgeTTS/Pydub)
-# docker.io - чтобы агент мог запускать субагентов (Agent Swarm System)
-# build-essential, g++, python3-dev - для компиляции ChromaDB и KuzuDB
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    docker.io \
+# build-essential, gcc, g++ нужны для компиляции некоторых C-расширений
+# curl, gnupg необходимы для скачивания ключей Docker
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    gcc \
     g++ \
-    python3-dev \
-    portaudio19-dev \
-    alsa-utils \
+    curl \
+    gnupg \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Задаем рабочую директорию внутри контейнера
+# Устанавливаем Docker CLI (для отладки DooD внутри контейнера)
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && apt-get install -y docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/*
+
+# Создаем рабочую директорию
 WORKDIR /app
 
-# Копируем сначала только requirements, чтобы закэшировать слой установки
+# Копируем зависимости и устанавливаем их
+# Делаем это отдельным шагом для кэширования слоев Docker
 COPY requirements.txt .
-
-# Устанавливаем Python-библиотеки
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Копируем весь остальной код проекта
+# Копируем остальной код проекта
 COPY . .
 
-# Динамическая установка звисимостей плагинов для конкретного агента
-
-# Получаем имя агента при сборке (передается из aaf.py -> docker-compose)
-ARG AGENT_NAME
-# Сохраняем его как переменную окружения внутри контейнера
-ENV AGENT_NAME=${AGENT_NAME}
-
-# Проверяем, есть ли файл custom_requirements.txt в папке плагинов этого агента.
-# Если есть - устанавливаем библиотеки из него. || true защищает от падения сборки.
-RUN if [ -f /app/Agents/${AGENT_NAME}/plugins/custom_requirements.txt ]; then \
-        echo "Installing custom plugins dependencies for ${AGENT_NAME}..." && \
-        pip install --no-cache-dir -r /app/Agents/${AGENT_NAME}/plugins/custom_requirements.txt || true; \
-    fi
-
-# Указываем команду для запуска
+# Точка входа. Запускаем именно src.main, так как там находится asyncio.run()
 CMD ["python", "-m", "src.main"]

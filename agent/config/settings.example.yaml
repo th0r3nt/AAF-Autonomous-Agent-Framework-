@@ -1,0 +1,67 @@
+llm:
+  # Основная модель агента
+  model_name: gemini-3-flash-preview
+  available_models:
+  - gemini-3.1-pro-preview
+  - gemini-3-flash-preview
+  - gemini-3.1-flash-lite-preview
+  - gpt-5.4
+  - claude-opus-4-6
+  - gemma-4-31b-it
+  # ...можно добавить свои
+
+  temperature: 0.7
+  max_react_ticks: 15
+
+  # Глубина контекста для разных ReAct циклов
+  context_depth:
+    # Чем больше число, тем больше предыдущих тиков будет учитываться при принятии решений
+
+    event_driven: 
+      ticks: 30 # Tick = один вызов модели "Наблюдение > Действие > Результат" 
+      # Например, обычно один цикл проактивности состоит в среднем из 1-8 тиков (вызовов модели LLM)
+
+    proactivity: 
+      ticks: 35 
+
+    consolidation: 
+      ticks: 40
+
+  is_main_model_multimodal: true # true - если основная модель агента мультимодальна
+  multimodal_model: gemini-3.1-flash-lite-preview # Если is_main_model_multimodal: false - будет использоваться эта для обработки изображений/видео
+
+rhythms:
+  proactivity_interval_sec: 900 # Базовый интервал между циклами проактивности
+  min_proactivity_cooldown_sec: 60 # Защита от сжигания лимитов API за 5 минут
+
+  reduction_medium_sec: 180 # При появлении фонового события уровня "medium" агент ускорит свой запуск проактивности на это время
+  reduction_low_sec: 90
+  reduction_background_sec: 30
+
+  consolidation_interval_sec: 3600 # Как часто агент будет сжимать память и рефлексировать над своим опытом
+
+memory:
+  # Векторная база данных
+  similarity_threshold: 0.43 # Порог релевантности для поиска семантических совпадений в векторной базе данных (0.0-1.0, в ChromaDB чем ниже - тем строже отбор)
+  vector_rag:
+    max_results: 5
+
+  # Графовая база данных
+  graph_rag:
+    max_direct_edges: 10
+    max_indirect_edges: 5
+
+  # Реранкеры для графовой базы данных (нужны, чтобы отбирать наиболее релевантные связи в графе)
+  # Доступные варианты:
+  # - corrius/cross-encoder-mmarco-mMiniLMv2-L12-H384-v1 (Самый быстрый, мультиязычный, для слабых CPU)
+  # - BAAI/bge-reranker-v2-m3 (Баланс)
+  # - jinaai/jina-reranker-v2-base-multilingual (Топ качество, но тяжелый, лучше для GPU)
+  reranker_model: "corrius/cross-encoder-mmarco-mMiniLMv2-L12-H384-v1"
+
+system:
+  logging_level: INFO
+
+  flags:
+    enable_proactivity: true
+    enable_consolidation: true
+    dump_llm_context: true # В logs/latest_llm_context.md будет сохраняться полный контекст, который был использован для последнего вызова к модели LLM

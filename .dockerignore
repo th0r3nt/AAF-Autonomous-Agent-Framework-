@@ -1,32 +1,41 @@
-# Git
-.git
-.gitignore
-
-# Python
-# Используем **/, чтобы кэш игнорировался во всех вложенных папках
-**/__pycache__/
-**/*.py[cod]
-**/*$py.class
+# Файлы Python/OC
+__pycache__/
+*.py[cod]
+*$py.class
 .venv/
 venv/
 env/
+.DS_Store
+Thumbs.db
 
-# Мульти-агентная структура (v1.1.0)
-_data
-docker-compose.yml
-
-# Конфиденциальные данные 
+# Конфиги /настройки/ключи
 .env
+agent/config/settings.yaml
+agent/config/interfaces.yaml
+agent/llm/api_keys/api_keys_state.json
+api_keys_state.json
 
-# Тяжелые модели
-# Эти папки пробрасываются через volumes, их не нужно запекать в образ
-src/layer00_utils/local_models/
-src/layer00_utils/vosk_model/
+# Базы данных и сессии
+agent/data/chroma_db/
+agent/data/kuzu_db/
+agent/data/telegram_sessions/
+agent/data/shadow_backups/
 
-# Базы данных
-workspace/_data
-Agents/*/.env
+# Разрешаем Git видеть .gitkeep в пустых папках
+!**/ .gitkeep
+
+# Sandbox
+agent/sandbox/*
+!agent/sandbox/.gitkeep
+agent/temp/*
+
+# Тяжелые локальные модели (Исправлено: добавлена 'l')
+src/l00_utils/local/
+
+# Логи
+logs/*.log
+logs/last_*_context.md
 
 # Утилиты
-copy_all_code.py
-all_code.txt
+docs/
+scripts/

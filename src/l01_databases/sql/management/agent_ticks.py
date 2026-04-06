@@ -1,0 +1,140 @@
+import json
+from typing import Sequence, Any, Optional
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+from sqlalchemy import select
+from src.l01_databases.sql.models import AgentTick
+
+
+class AgentTickCRUD:
+    def __init__(self, table: AgentTick, session_factory: async_sessionmaker[AsyncSession]):
+        self.table = table
+        self._session_factory = session_factory
+
+    # ==========================================
+    # 🟢 CREATE
+    # ==========================================
+
+    async def create_tick(
+        self,
+        trigger_event_id: Optional[str] = None,
+        status: str = "processing",
+        thoughts: str = "",
+        called_functions: list[dict[str, Any]] = None,
+        function_results: list[dict[str, Any]] = None,
+    ) -> AgentTick:
+        """
+        Создает новый тик. Обычно вызывается ДО начала работы LLM со статусом 'processing'.
+        """
+        async with self._session_factory() as session:
+            tick = self.table(
+                trigger_event_id=trigger_event_id,
+                status=status,
+                thoughts=thoughts,
+                called_functions=called_functions or [],
+                function_results=function_results or [],
+            )
+            session.add(tick)
+            await session.commit()
+            await session.refresh(tick)
+            return tick
+
+    # ==========================================
+    # 🔵 READ
+    # ==========================================
+
+    async def get_tick_by_event_id(self, event_id: str) -> AgentTick | None:
+        """
+        Ищет тик по UUID из RabbitMQ.
+        Используется для защиты от дублей (Idempotency check).
+        """
+        async with self._session_factory() as session:
+            stmt = select(self.table).where(self.table.trigger_event_id == event_id)
+            result = await session.execute(stmt)
+            return result.scalar_one_or_none()
+
+    async def get_tick_by_id(self, tick_id: int) -> AgentTick | None:
+        async with self._session_factory() as session:
+            return await session.get(self.table, tick_id)
+
+    async def get_all_ticks(self, limit: int = 100, offset: int = 0) -> Sequence[AgentTick]:
+        async with self._session_factory() as session:
+            stmt = (
+                select(self.table)
+                .order_by(self.table.created_at.desc())
+                .limit(limit)
+                .offset(offset)
+            )
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    # ==========================================
+    # 🟡 UPDATE
+    # ==========================================
+
+    async def update_tick(self, tick_id: int, **kwargs) -> AgentTick | None:
+        """
+        Обновляет тик. Используется в конце работы LLM для записи мыслей и смены статуса на 'success' или 'failed'.
+        """
+        async with self._session_factory() as session:
+            tick = await session.get(self.table, tick_id)
+            if not tick:
+                return None
+
+            for key, value in kwargs.items():
+                if hasattr(tick, key):
+                    setattr(tick, key, value)
+
+            await session.commit()
+            await session.refresh(tick)
+            return tick
+
+    # ==========================================
+    # 🔴 DELETE
+    # ==========================================
+
+    async def delete_tick(self, tick_id: int) -> bool:
+        async with self._session_factory() as session:
+            tick = await session.get(self.table, tick_id)
+            if not tick:
+                return False
+
+            await session.delete(tick)
+            await session.commit()
+            return True
+
+    # ==========================================
+    # MARKDOWN
+    # ==========================================
+
+    async def get_ticks_markdown(self, limit: int = 10, offset: int = 0) -> str:
+        """
+        Возвращает историю тиков агента в текстовом Markdown формате.
+        """
+        ticks = await self.get_all_ticks(limit, offset)
+        if not ticks:
+            return "История действий пуста."
+
+        # Разворачиваем, чтобы хронология шла от старого к новому
+        ticks = reversed(ticks)
+        lines = []
+
+        for t in ticks:
+            lines.append(f"### Tick #{t.id} [{t.status.upper()}]")
+            if t.error_message:
+                lines.append(f"Error: {t.error_message}")
+            if t.thoughts:
+                lines.append(f"Thoughts: {t.thoughts}")
+            if t.called_functions:
+                # Конвертируем JSON действий в компактную строку
+                calls_str = ", ".join([f"{f.get('tool_name')}({f.get('parameters', '')})" for f in t.called_functions])
+                lines.append(f"Action: {calls_str}")
+            if t.function_results:
+                # Ограничиваем длину вывода результатов, чтобы не взорвать контекст
+                res_str = json.dumps(t.function_results, ensure_ascii=False)
+                if len(res_str) > 500:
+                    res_str = res_str[:497] + "..."
+                lines.append(f"Result: {res_str}")
+            
+            lines.append("---")
+
+        return "\n".join(lines)
