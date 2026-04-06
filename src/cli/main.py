@@ -1,7 +1,7 @@
 # Файл: src/cli/main.py
 
 from src.cli.wizard import system, network, filesystem
-from src.cli import settings_manager, env_manager, interfaces_manager, docker_manager
+from src.cli import settings_manager, env_manager, interfaces_manager, docker_manager, personality_manager
 
 
 def run_startup_sequence(dev_mode: bool = False):
@@ -13,9 +13,10 @@ def run_startup_sequence(dev_mode: bool = False):
     network.run_all_network_checks()
     filesystem.run_all_fs_checks()
 
-    # Менеджмент конфигов
+    # Менеджмент конфигов и промптов
     settings_manager.run_settings_checks()
     interfaces_manager.run_interfaces_checks(force_wizard=False)
+    personality_manager.run_personality_checks()
     env_manager.run_all_env_checks(is_dev_mode=dev_mode)
 
     # Docker Orchestration

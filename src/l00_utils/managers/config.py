@@ -18,7 +18,7 @@ class IdentityConfig(BaseModel):
 
 
 class ContextDepthTickConfig(BaseModel):
-    number_of_ticks: int = Field(alias="haha", default=30)
+    number_of_ticks: int = Field(default=30)
 
 
 class ContextDepthConfig(BaseModel):

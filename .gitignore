@@ -20,6 +20,10 @@ agent/data/chroma_db/
 agent/data/kuzu_db/
 agent/data/telegram_sessions/
 agent/data/shadow_backups/
+agent_db.sqlite
+*.db
+*.sqlite
+*.sqlite3
 
 # Разрешаем Git видеть .gitkeep в пустых папках
 !**/ .gitkeep
@@ -33,11 +37,11 @@ agent/temp/*
 src/l00_utils/local/
 
 # Логи
-logs/*.log
-logs/last_*_context.md
+logs/
 
 # Утилиты
 docs/
 scripts/
 TODO.md
 copy_all_code.py
+all_code.txt

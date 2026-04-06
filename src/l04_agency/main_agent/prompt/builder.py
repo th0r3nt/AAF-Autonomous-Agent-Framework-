@@ -7,10 +7,11 @@ class PromptBuilder:
     Отвечает за физическое чтение .md файлов и сборку системного промпта.
     """
     def __init__(self):
-        # Вычисляем пути к папкам с промптами
+        # Текущая директория (src/l04_agency/main_agent/prompt/)
         current_dir = Path(__file__).resolve().parent
-        self.personality_dir = current_dir / "personality"
-        self.system_dir = current_dir / "system"
+        project_root = current_dir.parents[4] # Корень проекта
+        self.system_dir = current_dir / "system" # Системные промпты неизменяемы
+        self.personality_dir = project_root / "agent" / "prompt" # Промпты личности берутся из папки пользователя
 
     async def _read_md(self, filepath: Path) -> str:
         """Асинхронно читает файл. Если файла нет - возвращает пустоту и ругается в лог."""

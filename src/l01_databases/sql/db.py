@@ -54,4 +54,3 @@ class SQLDB:
         system_logger.info("[SQL DB] База данных успешно отключена.")
 
 
-# sql_db = SQLDB(SQL_DB_URL)
