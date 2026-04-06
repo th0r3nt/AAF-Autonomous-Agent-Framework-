@@ -61,7 +61,7 @@ def _set_yaml_val(config: dict, path_keys: list, value: bool):
     curr["enabled"] = value
 
 
-def run_interactive_wizard():
+def run_interactive_wizard() -> bool:
     """Пошаговый интерактивный мастер настройки модулей (State Machine)."""
     
     try:
@@ -78,18 +78,31 @@ def run_interactive_wizard():
         # 1. Формируем динамический список кнопок
         choices = []
         
-        # Обрабатываем VFS отдельно, так как у него есть madness_level
+        # Обрабатываем VFS (у него нет ключей, только уровень доступа)
         vfs_enabled = _get_yaml_val(config, ["vfs"])
         vfs_level = config.get("vfs", {}).get("madness_level", 0)
         vfs_icon = "🟢 [ON] " if vfs_enabled else "🔴 [OFF]"
-        vfs_title = f"{vfs_icon} VFS (Файловая система) [Level: {vfs_level}]"
+        choices.append(questionary.Choice(title=f"{vfs_icon} VFS (Файловая система) [Lvl: {vfs_level}]", value="vfs_toggle"))
         
-        choices.append(questionary.Choice(title=vfs_title, value="vfs_toggle"))
-        
-        # Обрабатываем остальные модули из карты
+        # Обрабатываем остальные модули
         for name, path_keys, env_id in INTERFACES_MAP:
             is_enabled = _get_yaml_val(config, path_keys)
-            icon = "🟢 [ON] " if is_enabled else "🔴 [OFF]"
+            
+            if not is_enabled:
+                icon = "🔴 [OFF]     "
+            else:
+                # Если включен, проверяем наличие ключей
+                has_keys = env_manager.has_credentials(env_id)
+                can_be_limited = env_id in env_manager.INTERFACE_CREDENTIALS and not env_manager.INTERFACE_CREDENTIALS[env_id]["required"]
+                
+                if has_keys:
+                    icon = "🟢 [FULL]    "
+                elif can_be_limited:
+                    icon = "🟡 [READ-ONLY]"
+                else:
+                    # Включен, ключи обязательны, но их нет (ошибка конфигурации)
+                    icon = "⚠️ [NO KEYS]  "
+
             choices.append(
                 questionary.Choice(title=f"{icon} {name}", value=(name, path_keys, env_id, is_enabled))
             )
@@ -108,16 +121,17 @@ def run_interactive_wizard():
         # 3. Обработка выбора
         if selected == "cancel" or selected is None:
             ui.warning("Изменения отменены. Возврат в главное меню.")
-            break
+            return False
             
         elif selected == "save":
             try:
                 with open(interfaces_path, "w", encoding="utf-8") as f:
                     yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-                ui.success("Конфигурация интерфейсов успешно сохранена!")
+                ui.success("Конфигурация интерфейсов успешно сохранена.")
+                return True
             except Exception as e:
                 ui.fatal(f"Ошибка сохранения interfaces.yaml: {e}")
-            break
+            return False
             
         elif selected == "vfs_toggle":
             # Переключаем VFS
@@ -168,12 +182,13 @@ def run_interactive_wizard():
                 _set_yaml_val(config, path_keys, False)
 
 
-def run_interfaces_checks(force_wizard: bool = False):
+def run_interfaces_checks(force_wizard: bool = False) -> bool:
     ui.info("Проверка конфигурации интерфейсов.")
     is_new = ensure_interfaces_exists()
 
     # Запускаем визард, если файл только что создан ИЛИ если юзер вызвал его из меню
     if is_new or force_wizard:
-        run_interactive_wizard()
-    else:
-        ui.success("Файлы интерфейсов в порядке.")
+        return run_interactive_wizard()
+
+    ui.success("Файлы интерфейсов в порядке.")
+    return True # Если визард не запускался, значит всё ок

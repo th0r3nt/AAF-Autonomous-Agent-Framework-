@@ -115,6 +115,7 @@ def interactive_menu():
 
         elif choice.startswith("⚙️"):
             conductor.run_wizard()
+            continue
 
         elif choice.startswith("🧹"):
             # Защита от случайного сноса памяти агента

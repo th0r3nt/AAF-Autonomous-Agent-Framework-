@@ -14,21 +14,53 @@ def _run_cmd(cmd: list, cwd: Path) -> subprocess.CompletedProcess:
     )
 
 def compose_up(dev_mode: bool = False) -> bool:
-    """Поднимает контейнеры. Возвращает True при успехе."""
-    cmd = ["docker", "compose", "up", "-d", "--build"]
+    """Поднимает контейнеры. Стримит логи сборки для красивого UI. Возвращает True при успехе."""
+    # Флаг --ansi never запрещает Docker'у рисовать свои цветные ползунки, которые ломают Rich UI
+    cmd = ["docker", "compose", "--ansi", "never", "up", "-d", "--build"]
+    
     if dev_mode:
         cmd.extend(["postgres", "rabbitmq"])
-        msg = "Сборка и запуск инфраструктуры (DEV режим)."
+        msg = "Сборка и запуск инфраструктуры (DEV режим)"
     else:
-        msg = "Сборка и запуск фреймворка AAF."
+        msg = "Сборка и запуск фреймворка AAF"
 
-    with ui.console.status(f"[bold green]{msg}[/bold green]", spinner="bouncingBar"):
-        result = _run_cmd(cmd, cwd=project_root)
+    with ui.console.status(f"[bold green]{msg}...[/bold green]", spinner="bouncingBar") as status:
+        process = subprocess.Popen(
+            cmd,
+            cwd=str(project_root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, # Сливаем ошибки и стандартный вывод вместе
+            text=True,
+            encoding='utf-8',
+            errors='replace'
+        )
 
-        if result.returncode != 0:
-            ui.error("Ошибка при запуске Docker Compose:")
-            ui.console.print(result.stderr)
-            return False # Возвращаем False, меню не закроется
+        error_log = []
+
+        # Читаем вывод Docker построчно в реальном времени
+        for line in process.stdout:
+            clean_line = line.strip()
+            if not clean_line:
+                continue
+            
+            error_log.append(clean_line)
+            if len(error_log) > 50: # Сохраняем в памяти только последние 50 строк
+                error_log.pop(0)
+
+            # Обрезаем строку, чтобы она не переносилась и выглядела лаконично
+            short_line = clean_line[:80] + "..." if len(clean_line) > 80 else clean_line
+            
+            # Динамически обновляем текст спиннера
+            status.update(f"[bold green]{msg}...[/bold green]\n[dim cyan]  > {short_line}[/dim cyan]")
+
+        # Ждем фактического завершения процесса
+        process.wait()
+
+        if process.returncode != 0:
+            ui.error("Ошибка при сборке и запуске Docker Compose:")
+            # Если упало - печатаем последние 20 строк лога для дебага
+            ui.console.print("\n".join(error_log[-20:]), style="bold red")
+            return False
 
     ui.success("Контейнеры успешно стартовали.")
     return True

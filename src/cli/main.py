@@ -12,7 +12,10 @@ def run_startup_sequence(dev_mode: bool = False):
 
     # Менеджмент конфигов и промптов
     settings_manager.run_settings_checks()
-    interfaces_manager.run_interfaces_checks(force_wizard=False)
+
+    if not interfaces_manager.run_interfaces_checks(force_wizard=False):
+        return # Если интерфейсы не настроены и пользователь отменил визард - возвращаемся в меню
+    
     prompt_manager.run_personality_checks()
     env_manager.run_all_env_checks(is_dev_mode=dev_mode)
 

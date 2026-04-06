@@ -48,6 +48,21 @@ def ensure_env_exists():
         else:
             ui.fatal("Не найден файл .env.example. Восстановите его из репозитория.")
 
+def has_credentials(interface_id: str) -> bool:
+    """
+    Проверяет наличие ключей для интерфейса БЕЗ запроса ввода.
+    Нужно для красивого отображения статуса в меню.
+    """
+    if interface_id not in INTERFACE_CREDENTIALS:
+        return True # Ключи не требуются по определению
+
+    creds = INTERFACE_CREDENTIALS[interface_id]
+    keys_to_check = creds["keys"]
+    env_vars = dotenv_values(env_path)
+
+    # Если хотя бы один ключ из списка пуст - считаем, что аккаунта нет
+    return all(env_vars.get(k) for k in keys_to_check)
+
 
 def check_and_prompt_keys(interface_id: str) -> bool:
     """
