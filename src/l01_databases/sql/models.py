@@ -22,7 +22,7 @@ class Task(Base):
         Text, nullable=True
     )  # Рабочие заметки агента (когда выполнено, прогресс и т.д.)
 
-    created_at: Mapped[datetime.datetime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
@@ -56,7 +56,7 @@ class MentalStateEntity(Base):
     # Гибкое досье (JSON) для связей, аккаунтов, предпочтений и алиасов
     related_information: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
-    updated_at: Mapped[datetime.datetime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
@@ -77,7 +77,7 @@ class PersonalityTrait(Base):
     )  # Само правило (например: "Игнорируй глупые вопросы")
     reason: Mapped[str] = mapped_column(String(1000))  # Причина (почему агент это решил)
 
-    created_at: Mapped[datetime.datetime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 

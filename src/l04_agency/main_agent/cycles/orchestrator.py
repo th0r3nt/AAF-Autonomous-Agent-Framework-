@@ -4,6 +4,7 @@ from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.event.models import EventEnvelope
 from src.l01_databases.sql.management.agent_ticks import AgentTickCRUD
 from src.l02_state.manager import GlobalState
+from src.l02_state.system.agency import AgencyState
 from src.l04_agency.react.loop import ReActLoop
 from src.l04_agency.main_agent.prompt.builder import PromptBuilder
 from src.l04_agency.main_agent.context.builder import ContextBuilder
@@ -20,6 +21,7 @@ class Orchestrator:
         react_loop: ReActLoop,
         prompt_builder: PromptBuilder,
         context_builder: ContextBuilder,
+        agency_state: AgencyState
     ):
         self.state = global_state
         self.tick_crud = tick_crud
@@ -27,6 +29,7 @@ class Orchestrator:
 
         self.prompt_builder = prompt_builder
         self.context_builder = context_builder
+        self.agency_state = agency_state
 
         self.mind_lock = asyncio.Lock()
 
@@ -46,6 +49,7 @@ class Orchestrator:
             self.state.agency_state.update_main_agent("thinking", cycle_type)
 
             tick = await self.tick_crud.create_tick(trigger_event_id=envelope.event_id)
+            self.agency_state.current_tick_id.set(tick.id)
             system_logger.info(
                 f"[Orchestrator] Запуск цикла {cycle_type.upper()}. Тик #{tick.id}."
             )

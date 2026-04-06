@@ -1,6 +1,8 @@
 import httpx
 from src.l00_utils.managers.logger import system_logger
-from src.l03_interfaces.type.geo.client import GeoClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.geo.client import GeoClient
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -10,7 +12,7 @@ from src.l04_agency.skills.registry import skill
 class GeoWeather(BaseInstrument):
     """Сервис для получения текущей погоды и прогнозов по координатам."""
 
-    def __init__(self, client: GeoClient):
+    def __init__(self, client: 'GeoClient'):
         super().__init__()  # Автоматическая регистрация навыков для LLM, у которых есть декоратор @skill
         self.api = client
         self.base_url = "https://api.open-meteo.com/v1/forecast"

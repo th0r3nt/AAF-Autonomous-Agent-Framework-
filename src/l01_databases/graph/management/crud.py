@@ -1,4 +1,4 @@
-from l01_databases.graph.db import GraphDB
+from src.l01_databases.graph.db import GraphDB
 
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings

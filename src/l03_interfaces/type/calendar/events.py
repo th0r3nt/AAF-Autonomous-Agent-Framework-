@@ -5,7 +5,10 @@ from croniter import croniter
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.event.registry import Events
-from src.l03_interfaces.type.calendar.client import CalendarClient
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.calendar.client import CalendarClient
 
 
 class CalendarEvents:

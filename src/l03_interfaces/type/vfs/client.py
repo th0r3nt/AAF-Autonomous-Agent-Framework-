@@ -6,6 +6,7 @@ from docker.client import DockerClient
 from docker.errors import DockerException
 
 from src.l00_utils.managers.logger import system_logger
+from src.l02_state.system.agency import AgencyState
 
 # Родители
 from src.l03_interfaces.type.base import BaseClient
@@ -28,6 +29,7 @@ class VFSClient(BaseClient):
     """Низкоуровневый клиент для VFS и Docker."""
 
     def __init__(self, sandbox_dir: Path):
+        self.agency_state = AgencyState()
 
         self.sandbox_path = sandbox_dir
         self.sandbox_path.mkdir(parents=True, exist_ok=True)
@@ -43,7 +45,7 @@ class VFSClient(BaseClient):
         project_root = self.sandbox_path.parents[1]
 
         access_controller = VFSAccessController(self.sandbox_path, project_root)
-        backup_manager = ShadowBackupManager(project_root)
+        backup_manager = ShadowBackupManager(project_root, agency_state=self.agency_state)
 
         FilesCRUD(self, access_controller, backup_manager)
         FilesArchive(self)

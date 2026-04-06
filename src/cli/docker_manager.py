@@ -124,7 +124,7 @@ def compose_up(dev_mode: bool = False) -> bool:
 
         # Подвал с подсказкой про отмену
         grid.add_row(Text("─" * 80, style="dim"))
-        grid.add_row(Text("Нажмите [Ctrl+C] для отмены", style="dim red"), justify="center")
+        grid.add_row(Text("Нажмите [Ctrl+C] для отмены", style="dim red", justify="center"))
 
         return Panel(
             grid,

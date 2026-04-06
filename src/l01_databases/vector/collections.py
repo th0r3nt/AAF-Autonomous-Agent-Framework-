@@ -1,8 +1,13 @@
-from src.l01_databases.vector.db import VectorDB
+from typing import TYPE_CHECKING
+
+# Импортируем VectorDB только для проверок типов (IDE), 
+# чтобы в рантайме не было циклического импорта
+if TYPE_CHECKING:
+    from src.l01_databases.vector.db import VectorDB
 
 
 class VectorCollection:
-    def __init__(self, db: VectorDB, collection_name: str):
+    def __init__(self, db: "VectorDB", collection_name: str):
         self.db = db
         self.collection_name = collection_name
         self._collection = None

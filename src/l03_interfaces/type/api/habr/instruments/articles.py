@@ -1,7 +1,9 @@
 import httpx
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils._tools import clean_html_to_md
-from src.l03_interfaces.type.api.habr.client import HabrClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.api.habr.client import HabrClient
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -13,7 +15,7 @@ class HabrArticles(BaseInstrument):
     Сервис для поиска и чтения статей на Хабре.
     """
 
-    def __init__(self, agent_client: HabrClient):
+    def __init__(self, agent_client: 'HabrClient'):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
         self.http = agent_client.client
 

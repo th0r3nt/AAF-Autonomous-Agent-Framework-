@@ -2,7 +2,7 @@ import asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
-from l00_utils.managers.event_bus import EventBus
+from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.managers.logger import system_logger
 
 

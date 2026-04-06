@@ -5,7 +5,9 @@ from imap_tools import MailBox, A, MailMessageFlags
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils._tools import clean_html_to_md
 from src.l03_interfaces.type.base import BaseInstrument
-from src.l03_interfaces.type.email.client import EmailClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.email.client import EmailClient
 from src.l03_interfaces.models import ToolResult
 
 from src.l04_agency.skills.registry import skill
@@ -22,7 +24,7 @@ DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 class EmailReader(BaseInstrument):
     """Сервис для чтения почты, поиска писем и загрузки вложений."""
 
-    def __init__(self, client: EmailClient):
+    def __init__(self, client: 'EmailClient'):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
 
         self.server = client.imap_server

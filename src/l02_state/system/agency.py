@@ -1,4 +1,5 @@
 from collections import deque
+from contextvars import ContextVar
 
 from src.l00_utils.managers.logger import system_logger
 
@@ -14,20 +15,12 @@ class AgencyState:
         # Буфер прерываний: список EventEnvelope, которые прилетели, пока мозг думал
         self.interrupt_buffer = []
 
-        # Буфер событий: хранит фоновые события уровня MEDIUM, LOW и BACKGROUND, пока агент спит)
+        # Буфер событий: хранит фоновые события уровня MEDIUM, LOW и BACKGROUND, пока агент спит
         self.sensory_buffer = deque(maxlen=100)
 
-        # Состояние субагентов
-        self.subagents = {
-            # Фоновые вечные процессы
-            "daemons": {
-                # "web_monitor": {"status": "working", "task": "digesting an existential crisis from the news"}
-            },
-            # Временные работяги
-            "workers": {
-                # "coder_invalid": {"status": "suffers", "task": "debugging aaf"}
-            },
-        }
+        # Глобальная контекстная переменная для хранения ID текущего тика ReAct-цикла.
+        # Нужна для работы теневых бэкапов VFS.
+        self.current_tick_id: ContextVar[int] = ContextVar("current_tick_id", default=0)
 
     def get_state(self) -> dict:
         """

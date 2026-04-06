@@ -107,7 +107,7 @@ def run_interactive_wizard() -> bool:
                     status_str = "[READ-ONLY]"
                     emoji = "🟡"
                 else:
-                    status_str = "[NO KEYS]"
+                    status_str = " [NO KEYS]"
                     emoji = "⚠️"
 
             # То же самое выравнивание до 12 символов
@@ -149,6 +149,8 @@ def run_interactive_wizard() -> bool:
             _set_yaml_val(config, ["vfs"], new_state)
             
             if new_state: # Если включили, спрашиваем уровень доступа
+                ui.clear_screen()
+                ui.console.print("\n[bold cyan]НАСТРОЙКА VFS[/bold cyan]")
                 ui.console.print(
                     "\n[dim]Уровни доступа VFS:\n"
                     "0 - Строго в sandbox/ (Безопасно)\n"

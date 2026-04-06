@@ -4,7 +4,9 @@ import asyncio
 
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings
-from src.l03_interfaces.type.vfs.client import VFSClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.vfs.client import VFSClient
 
 from src.l03_interfaces.type.vfs.security.access import VFSAccessController
 from src.l03_interfaces.type.vfs.security.ast import ASTValidator
@@ -23,7 +25,7 @@ class FilesCRUD(BaseInstrument):
 
     def __init__(
         self,
-        client: VFSClient,
+        client: 'VFSClient',
         access_controller: VFSAccessController,
         backup_manager: ShadowBackupManager,
     ):

@@ -4,7 +4,9 @@ from pathlib import Path
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings
 
-from src.l03_interfaces.type.vfs.client import VFSClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.vfs.client import VFSClient
 from src.l03_interfaces.type.vfs.instruments.sandbox.containers import SandboxContainers
 from src.l03_interfaces.type.vfs.security.access import VFSAccessController
 from src.l03_interfaces.models import ToolResult
@@ -21,7 +23,7 @@ class SandboxExecutor(BaseInstrument):
     2. god_mode - выполнение прямо в ОС сервера (Требует madness_level = 3).
     """
 
-    def __init__(self, client: VFSClient, containers: SandboxContainers):
+    def __init__(self, client: 'VFSClient', containers: SandboxContainers):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
 
         self.client = client

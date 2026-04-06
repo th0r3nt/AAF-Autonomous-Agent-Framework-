@@ -105,12 +105,12 @@ def interactive_menu():
             conductor.run_teardown_sequence(remove_volumes=False)
 
         elif choice.startswith("📋"):
-            ui.info("Открытие логов в новом окне...")
+            ui.info("Открытие логов в новом окне.")
             open_logs_in_new_window()
             ui.success("Окно логов запущено!")
 
         elif choice.startswith("🛠️"):
-            ui.info("Запуск в режиме разработчика (Только инфраструктура)...")
+            ui.info("Запуск в режиме разработчика (Только инфраструктура).")
             conductor.run_startup_sequence(dev_mode=True)
 
         elif choice.startswith("⚙️"):
@@ -132,7 +132,7 @@ def interactive_menu():
 
         # Пауза перед возвратом в Главное меню
         print()
-        input("[Нажмите Enter, чтобы вернуться в меню...]")
+        input("[Нажмите Enter, чтобы вернуться в меню]")
 
 
 @app.callback()
@@ -146,7 +146,7 @@ def main(ctx: typer.Context):
 
 
 # =========================================================
-# Старые CLI команды (Оставляем для CI/CD и скриптов)
+# Старые CLI команды (оставляем для CI/CD и скриптов)
 # =========================================================
 
 @app.command()

@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 from src.l00_utils.managers.logger import system_logger
-from src.l02_state.system.agency import current_tick_id
+from src.l02_state.system.agency import AgencyState
 
 
 class ShadowBackupManager:
@@ -10,8 +10,9 @@ class ShadowBackupManager:
     Создает теневые копии файлов перед их изменением агентом и управляет транзакциями (commit/rollback).
     """
 
-    def __init__(self, project_root: Path):
+    def __init__(self, project_root: Path, agency_state: AgencyState):
         self.project_root = project_root.resolve()
+        self.agency_state = agency_state
 
         # Папка для теневых копий, она недоступна агенту и служит для хранения оригинальных версий файлов на время ReAct-цикла
         self.backup_dir = self.project_root / "agent" / "data" / "shadow_backups"
@@ -27,7 +28,7 @@ class ShadowBackupManager:
         """
         Копирует оригинальный файл в папку бэкапов текущего тика перед тем, как агент его перезапишет.
         """
-        tick_id = current_tick_id.get()
+        tick_id = self.agency_state.current_tick_id.get()
         if not tick_id:
             system_logger.warning(
                 f"[Shadow Backup] Попытка изменения файла {target_absolute_path.name} вне контекста тика. Бэкап не создан."

@@ -4,7 +4,9 @@ import asyncio
 from pathlib import Path
 
 from src.l00_utils.managers.logger import system_logger
-from src.l03_interfaces.type.vfs.client import VFSClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.vfs.client import VFSClient
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -17,7 +19,7 @@ class FilesArchive(BaseInstrument):
     Полезно при скачивании репозиториев, датасетов или подготовке файлов к отправке.
     """
 
-    def __init__(self, client: VFSClient):
+    def __init__(self, client: 'VFSClient'):
         self.vfs_client = client
 
     # ==========================================

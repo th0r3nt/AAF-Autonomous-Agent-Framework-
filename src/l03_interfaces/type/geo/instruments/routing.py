@@ -1,6 +1,8 @@
 import httpx
 from src.l00_utils.managers.logger import system_logger
-from src.l03_interfaces.type.geo.client import GeoClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.geo.client import GeoClient
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -10,7 +12,7 @@ from src.l04_agency.skills.registry import skill
 class GeoRouting(BaseInstrument):
     """Сервис для построения маршрутов и расчета времени в пути."""
 
-    def __init__(self, client: GeoClient):
+    def __init__(self, client: 'GeoClient'):
         super().__init__()
         self.api = client
         # Бесплатный публичный сервер OSRM
