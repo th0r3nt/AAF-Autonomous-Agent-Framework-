@@ -42,6 +42,7 @@ logs/
 # Утилиты
 docs/
 scripts/
+tests/
 TODO.md
 copy_all_code.py
 all_code.txt

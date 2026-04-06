@@ -1,41 +1,53 @@
-# Файлы Python/OC
+# ==========================================
+# Исключения для Docker Build Context
+# ==========================================
+
+# Системное и IDE
+.git/
+.gitignore
+.idea/
+.vscode/
 __pycache__/
 *.py[cod]
 *$py.class
-.venv/
-venv/
-env/
 .DS_Store
 Thumbs.db
 
-# Конфиги /настройки/ключи
+# Виртуальные окружения
+.venv/
+venv/
+env/
+
+# Конфиги / настройки / ключи
 .env
 agent/config/settings.yaml
 agent/config/interfaces.yaml
-agent/llm/api_keys/api_keys_state.json
-api_keys_state.json
+**/api_keys_state.json
 
 # Базы данных и сессии
 agent/data/chroma_db/
 agent/data/kuzu_db/
 agent/data/telegram_sessions/
 agent/data/shadow_backups/
+*.sqlite
+*.db
 
-# Разрешаем Git видеть .gitkeep в пустых папках
-!**/ .gitkeep
+# Тяжелые локальные ИИ-модели
+src/l00_utils/local/
 
-# Sandbox
+# Sandbox (Оставляем только .gitkeep для сохранения структуры папок)
 agent/sandbox/*
 !agent/sandbox/.gitkeep
 agent/temp/*
+!agent/temp/.gitkeep
 
-# Тяжелые локальные модели (Исправлено: добавлена 'l')
-src/l00_utils/local/
+# Разрешаем Git видеть .gitkeep во всех пустых папках
+!**/.gitkeep
 
 # Логи
-logs/*.log
-logs/last_*_context.md
+logs/
 
-# Утилиты
-docs/
+# Скрипты / утилиты
 scripts/
+all_code.txt
+copy_all_code.py

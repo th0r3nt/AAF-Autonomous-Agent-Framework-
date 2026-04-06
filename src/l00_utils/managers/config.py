@@ -228,5 +228,9 @@ def load_settings() -> Settings:
             )
             sys.exit(1)
 
-
+# Инициализируем настройки
 settings = load_settings()
+
+# Теперь, когда настройки успешно загружены, мы говорим логгеру, какой уровень использовать (чтобы избежать циклической зависимости)
+from src.l00_utils.managers.logger import update_log_level
+update_log_level(settings.system.logging_level)

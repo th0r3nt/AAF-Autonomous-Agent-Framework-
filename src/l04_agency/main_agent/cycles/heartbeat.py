@@ -1,6 +1,5 @@
-# Файл: src/l04_agency/main_agent/cycles/heartbeat.py
-
 import asyncio
+import time  # Добавили модуль time
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.event.registry import Events
 from src.l00_utils.managers.event_bus import EventBus
@@ -22,38 +21,40 @@ class AgentHeartbeat:
         # Инициализируем таймеры базовыми значениями из настроек
         self.proactivity_countdown = rhythms.get("proactivity_interval_sec", 900)
         self.consolidation_countdown = rhythms.get("consolidation_interval_sec", 3600)
+        
+        # Запоминаем физическое время последнего запуска проактивности
+        self.last_proactivity_time = time.time()
 
     def reduce_proactivity_timer(self, level: str):
         """
         Ускоряет запуск проактивности.
-        Вызывается EventDispatcher, если прило фоновое событие (например, лайк на Reddit),
-        чтобы агент быстрее отреагировал на накопленные события.
         """
         rhythms = self.state.settings_state.get_state()["rhythms"]
 
-        # Определяем, сколько секунд срезать
         reduction = 0
         if level == "medium":
             reduction = rhythms.get("reduction_medium_sec", 180)
-
         elif level == "low":
             reduction = rhythms.get("reduction_low_sec", 90)
-
         elif level == "background":
             reduction = rhythms.get("reduction_background_sec", 30)
 
         min_cooldown = rhythms.get("min_proactivity_cooldown_sec", 60)
 
-        # Срезаем таймер
+        # Вычисляем, сколько секунд мы еще должны подождать, чтобы не нарушить кулдаун
+        seconds_passed = time.time() - self.last_proactivity_time
+        remaining_cooldown = max(0, min_cooldown - seconds_passed)
+
         old_value = self.proactivity_countdown
         self.proactivity_countdown -= reduction
 
-        # Защита: не даем таймеру опуститься ниже минимального кулдауна, чтобы не сжечь API проактивностью
-        if self.proactivity_countdown < min_cooldown:
-            self.proactivity_countdown = min_cooldown
+        # Если мы срезали таймер так сильно, что он стал меньше обязательного остатка кулдауна,
+        # то приравниваем его к этому остатку (если остаток 0, таймер станет 0 и цикл запустится сразу)
+        if self.proactivity_countdown < remaining_cooldown:
+            self.proactivity_countdown = int(remaining_cooldown)
 
         system_logger.info(
-            f"[Heartbeat] Фоновый событие ({level}). Таймер проактивности ускорен: {old_value} -> {self.proactivity_countdown} сек."
+            f"[Heartbeat] Фоновое событие ({level}). Таймер проактивности: {old_value} -> {self.proactivity_countdown} сек."
         )
 
     async def _proactivity_ticker(self):
@@ -63,7 +64,7 @@ class AgentHeartbeat:
             
             settings = self.state.settings_state.get_state()
             if not settings["system"]["flags"].get("enable_proactivity", True):
-                continue  # Если выключили в настройках - просто ждем
+                continue  
 
             self.proactivity_countdown -= 1
             
@@ -71,9 +72,10 @@ class AgentHeartbeat:
                 system_logger.info("[Heartbeat] Сработал ритм проактивности.")
                 await self.event_bus.publish(Events.SYSTEM_TIMER_PROACTIVITY)
                 
-                # Сброс таймера к базовому значению
+                # Сброс таймера и обновление времени запуска
                 rhythms = self.state.settings_state.get_state()["rhythms"]
                 self.proactivity_countdown = rhythms.get("proactivity_interval_sec", 900)
+                self.last_proactivity_time = time.time()
 
     async def _consolidation_ticker(self):
         """Отдельный независимый тикер для цикла консолидации памяти."""
@@ -82,7 +84,7 @@ class AgentHeartbeat:
             
             settings = self.state.settings_state.get_state()
             if not settings["system"]["flags"].get("enable_consolidation", True):
-                continue  # Если выключили в настройках - ждем
+                continue  
 
             self.consolidation_countdown -= 1
             
@@ -95,11 +97,7 @@ class AgentHeartbeat:
                 self.consolidation_countdown = rhythms.get("consolidation_interval_sec", 3600)
 
     def start(self):
-        """
-        Запускает сердцебиение (фоновые тикеры для цикла проактивности и консолидации).
-
-        Тикеры работают независимо от основного цикла оркестратора и могут ускоряться внешними событиями.
-        """
+        """Запускает сердцебиение."""
         system_logger.info("[Heartbeat] Запуск независимых ритмов (Проактивность и Консолидация).")
         asyncio.create_task(self._proactivity_ticker())
         asyncio.create_task(self._consolidation_ticker())

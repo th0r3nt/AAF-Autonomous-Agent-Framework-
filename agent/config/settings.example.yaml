@@ -1,3 +1,6 @@
+identity:
+  agent_name: "" # Имя агента
+
 llm:
   # Основная модель агента
   model_name: gemini-3-flash-preview

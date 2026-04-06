@@ -18,32 +18,35 @@ def clear_screen():
 
 def print_banner():
     """Отрисовывает баннер AAF при запуске."""
-    banner_text = textwrap.dedent("""\
-        █████╗  █████╗ ███████╗
-        ██╔══██╗██╔══██╗██╔════╝
-        ███████║███████║█████╗  
-        ██╔══██║██╔══██║██╔══╝  
-        ██║  ██║██║  ██║██║     
-        ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     
-        Autonomous Agent Framework
+    # textwrap.dedent уберет отступы самого кода Питона, 
+    # чтобы justify="center" сработал идеально ровно по центру терминала.
+    banner_text = textwrap.dedent("""
+                                  
+          █████╗  █████╗ ███████╗
+         ██╔══██╗██╔══██╗██╔════╝
+       ███████║███████║█████╗  
+       ██╔══██║██╔══██║██╔══╝  
+    ██║  ██║██║  ██║██║     
+    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     
+       Autonomous Agent Framework
     """)
+    # P.S. Лого выглядит криво, но в консоли каким-то образом выводится ровно... Черная магия
     
     panel = Panel(
         Text(banner_text, style="bold cyan", justify="center"),
         border_style="cyan",
         title="[bold white]AAF Initializer[/bold white]",
         subtitle="[dim]v1.2.3[/dim]",
-        expand=False # Не растягивать рамку на всю ширину терминала
     )
-    # Печатаем панель по центру экрана
-    console.print(panel, justify="center")
+    console.print(panel)
     console.print()
 
 def _typewriter(prefix: str, msg: str, base_speed: float = 0.01):
     """
-    Печатает текст посимвольно, при этом не ломая цвета и стили (Rich теги).
+    Печатает текст посимвольно, 
+    при этом не ломая цвета и стили (Rich теги).
     """
-    # Если вывод идет не в терминал (а например, в CI/CD пайплайн), печатаем мгновенно
+    # Если вывод идет не в терминал (а например, в пайплайн), печатаем мгновенно
     if not console.is_terminal:
         console.print(f"{prefix} {msg}")
         return
@@ -51,28 +54,29 @@ def _typewriter(prefix: str, msg: str, base_speed: float = 0.01):
     icon_text = Text.from_markup(f"{prefix} ")
     msg_text = Text.from_markup(msg)
     
-    # Live позволяет обновлять текущую строку терминала на лету
-    # transient=False означает, что строка останется на экране после завершения анимации
     with Live(icon_text, refresh_per_second=120, transient=False) as live:
         for i in range(1, len(msg_text) + 1):
-            # Склеиваем префикс с обрезанным кусочком текста
             live.update(icon_text + msg_text[:i])
-            
-            # Небольшая рандомизация скорости для эффекта "живого" компьютера
             time.sleep(base_speed + random.uniform(0.0, 0.005))
 
 def info(msg: str):
+    # Начало блока проверки, печатается без отступа после
     _typewriter("[bold cyan]ℹ[/bold cyan]", msg, base_speed=0.005)
 
 def success(msg: str):
+    # Конец блока проверки, делаем отступ
     _typewriter("[bold green]✔[/bold green]", msg, base_speed=0.005)
+    console.print()
 
 def warning(msg: str):
+    # Ворнинги - тоже конец блока
     _typewriter("[bold yellow]⚠[/bold yellow]", msg, base_speed=0.01)
+    console.print()
 
 def error(msg: str):
     # Ошибки выводим чуть медленнее, для драматизма
     _typewriter("[bold red]✖[/bold red]", msg, base_speed=0.02)
+    console.print()
 
 def fatal(msg: str):
     """Выводит критическую ошибку и убивает скрипт."""
