@@ -78,10 +78,15 @@ def run_interactive_wizard() -> bool:
         # 1. Формируем динамический список кнопок
         choices = []
         
-        # Обрабатываем VFS (у него нет ключей, только уровень доступа)
+        # Обрабатываем VFS (Файловая система)
         vfs_enabled = _get_yaml_val(config, ["vfs"])
         vfs_level = config.get("vfs", {}).get("madness_level", 0)
-        vfs_icon = "🟢 [ON] " if vfs_enabled else "🔴 [OFF]"
+        
+        vfs_status = "[ON]" if vfs_enabled else "[OFF]"
+        vfs_emoji = "🟢" if vfs_enabled else "🔴"
+        # : <12 означает выравнивание текста по левому краю шириной ровно 12 символов
+        vfs_icon = f"{vfs_emoji} {vfs_status: <12}" 
+        
         choices.append(questionary.Choice(title=f"{vfs_icon} VFS (Файловая система) [Lvl: {vfs_level}]", value="vfs_toggle"))
         
         # Обрабатываем остальные модули
@@ -89,25 +94,30 @@ def run_interactive_wizard() -> bool:
             is_enabled = _get_yaml_val(config, path_keys)
             
             if not is_enabled:
-                icon = "🔴 [OFF]     "
+                status_str = "[OFF]"
+                emoji = "🔴"
             else:
-                # Если включен, проверяем наличие ключей
                 has_keys = env_manager.has_credentials(env_id)
                 can_be_limited = env_id in env_manager.INTERFACE_CREDENTIALS and not env_manager.INTERFACE_CREDENTIALS[env_id]["required"]
                 
                 if has_keys:
-                    icon = "🟢 [FULL]    "
+                    status_str = "[FULL]"
+                    emoji = "🟢"
                 elif can_be_limited:
-                    icon = "🟡 [READ-ONLY]"
+                    status_str = "[READ-ONLY]"
+                    emoji = "🟡"
                 else:
-                    # Включен, ключи обязательны, но их нет (ошибка конфигурации)
-                    icon = "⚠️ [NO KEYS]  "
+                    status_str = "[NO KEYS]"
+                    emoji = "⚠️"
+
+            # То же самое выравнивание до 12 символов
+            icon = f"{emoji} {status_str: <12}"
 
             choices.append(
                 questionary.Choice(title=f"{icon} {name}", value=(name, path_keys, env_id, is_enabled))
             )
             
-        choices.append(questionary.Separator())
+        choices.append(questionary.Separator("   " + "-"*40))
         choices.append(questionary.Choice(title="💾 Сохранить и выйти", value="save"))
         choices.append(questionary.Choice(title="❌ Отмена (без сохранения)", value="cancel"))
 

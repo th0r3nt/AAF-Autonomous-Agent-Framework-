@@ -1,9 +1,13 @@
 import os
 import sys
+import time
+import random
+import textwrap
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.text import Text
+from rich.live import Live
 
 # Инициализируем глобальную консоль
 console = Console()
@@ -14,38 +18,64 @@ def clear_screen():
 
 def print_banner():
     """Отрисовывает баннер AAF при запуске."""
-    banner_text = """
-    █████╗  █████╗ ███████╗
-   ██╔══██╗██╔══██╗██╔════╝
-   ███████║███████║█████╗  
-   ██╔══██║██╔══██║██╔══╝  
-   ██║  ██║██║  ██║██║     
-   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     
-   Autonomous Agent Framework
-    """
+    banner_text = textwrap.dedent("""\
+        █████╗  █████╗ ███████╗
+        ██╔══██╗██╔══██╗██╔════╝
+        ███████║███████║█████╗  
+        ██╔══██║██╔══██║██╔══╝  
+        ██║  ██║██║  ██║██║     
+        ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     
+        Autonomous Agent Framework
+    """)
+    
     panel = Panel(
         Text(banner_text, style="bold cyan", justify="center"),
         border_style="cyan",
         title="[bold white]AAF Initializer[/bold white]",
         subtitle="[dim]v1.2.3[/dim]",
+        expand=False # Не растягивать рамку на всю ширину терминала
     )
-    console.print(panel)
+    # Печатаем панель по центру экрана
+    console.print(panel, justify="center")
     console.print()
 
+def _typewriter(prefix: str, msg: str, base_speed: float = 0.01):
+    """
+    Печатает текст посимвольно, при этом не ломая цвета и стили (Rich теги).
+    """
+    # Если вывод идет не в терминал (а например, в CI/CD пайплайн), печатаем мгновенно
+    if not console.is_terminal:
+        console.print(f"{prefix} {msg}")
+        return
+        
+    icon_text = Text.from_markup(f"{prefix} ")
+    msg_text = Text.from_markup(msg)
+    
+    # Live позволяет обновлять текущую строку терминала на лету
+    # transient=False означает, что строка останется на экране после завершения анимации
+    with Live(icon_text, refresh_per_second=120, transient=False) as live:
+        for i in range(1, len(msg_text) + 1):
+            # Склеиваем префикс с обрезанным кусочком текста
+            live.update(icon_text + msg_text[:i])
+            
+            # Небольшая рандомизация скорости для эффекта "живого" компьютера
+            time.sleep(base_speed + random.uniform(0.0, 0.005))
+
 def info(msg: str):
-    console.print(f"[bold cyan]ℹ[/bold cyan] {msg}")
+    _typewriter("[bold cyan]ℹ[/bold cyan]", msg, base_speed=0.005)
 
 def success(msg: str):
-    console.print(f"[bold green]✔[/bold green] {msg}")
+    _typewriter("[bold green]✔[/bold green]", msg, base_speed=0.005)
 
 def warning(msg: str):
-    console.print(f"[bold yellow]⚠[/bold yellow] {msg}")
+    _typewriter("[bold yellow]⚠[/bold yellow]", msg, base_speed=0.01)
 
 def error(msg: str):
-    console.print(f"[bold red]✖[/bold red] {msg}")
+    # Ошибки выводим чуть медленнее, для драматизма
+    _typewriter("[bold red]✖[/bold red]", msg, base_speed=0.02)
 
 def fatal(msg: str):
-    """Выводит критическую ошибку и убивает скрипт (использовать только для фатальных сбоев самого лаунчера)."""
+    """Выводит критическую ошибку и убивает скрипт."""
     console.print(
         Panel(f"[bold red]{msg}[/bold red]", border_style="red", title="FATAL ERROR")
     )
