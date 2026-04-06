@@ -39,3 +39,5 @@ logs/last_*_context.md
 # Утилиты
 docs/
 scripts/
+TODO.md
+copy_all_code.py
