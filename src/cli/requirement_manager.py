@@ -8,7 +8,8 @@ CLI_DEPENDENCIES = {
     "rich": "rich",
     "dotenv": "python-dotenv",
     "yaml": "pyyaml",
-    "docker": "docker" # Добавим docker, так как мы импортируем его для чтения логов
+    "docker": "docker", # Добавим docker, так как мы импортируем его для чтения логов
+    "questionary": "questionary"
 }
 
 def check_and_install_dependencies():

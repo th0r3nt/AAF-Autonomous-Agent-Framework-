@@ -1,8 +1,10 @@
 import yaml
 import shutil
 from pathlib import Path
+import questionary
+
 from src.cli import ui
-from rich.prompt import Confirm
+from src.cli import env_manager
 
 current_dir = Path(__file__).resolve()
 config_dir = current_dir.parents[3] / "agent" / "config"
@@ -10,85 +12,168 @@ interfaces_path = config_dir / "interfaces.yaml"
 interfaces_example = config_dir / "interfaces.example.yaml"
 
 
+# Карта интерфейсов: (Отображаемое имя, Путь_в_YAML, ID_для_ENV_Manager)
+INTERFACES_MAP = [
+    ("Telegram Bot (Aiogram)", ["telegram", "bot"], "telegram.bot"),
+    ("Telegram Userbot (Telethon)", ["telegram", "userbot"], "telegram.userbot"),
+    ("GitHub API", ["api", "github"], "api.github"),
+    ("Reddit API", ["api", "reddit"], "api.reddit"),
+    ("Habr API", ["api", "habr"], "api.habr"),
+    ("Email (IMAP/SMTP)", ["email"], "email"),
+    ("Web Browser", ["web", "browser"], "web.browser"),
+    ("Web HTTP Requests", ["web", "http"], "web.http"),
+    ("Web Search (Google/DDG)", ["web", "search"], "web.search"),
+    ("Local Calendar (Cron)", ["calendar"], "calendar"),
+    ("System Settings Control", ["system"], "system"),
+]
+
+
 def ensure_interfaces_exists():
+    """Проверяет наличие файла, если нет - копирует из шаблона."""
     config_dir.mkdir(parents=True, exist_ok=True)
     if not interfaces_path.exists():
         if interfaces_example.exists():
             shutil.copy(interfaces_example, interfaces_path)
             ui.info("Файл interfaces.yaml создан из шаблона.")
-            return True  # Файл только что создан, значит можно предложить пройти визард
+            return True  # Файл только что создан, запускаем визард
         else:
             ui.fatal("Не найден interfaces.example.yaml. Восстановите его из репозитория.")
     return False
 
 
-def run_interactive_wizard():
-    """Пошаговый опросник для быстрой настройки модулей."""
-    ui.console.print("\n[bold cyan]=== МАСТЕР НАСТРОЙКИ ИНТЕРФЕЙСОВ AAF===[/bold cyan]")
-    ui.info(
-        "Сейчас мы настроим базовые модули агента. Вы можете изменить их позже в interfaces.yaml."
-    )
+def _get_yaml_val(config: dict, path_keys: list, default=False):
+    """Безопасно извлекает значение из вложенного словаря."""
+    curr = config
+    for key in path_keys:
+        if isinstance(curr, dict) and key in curr:
+            curr = curr[key]
+        else:
+            return default
+    # Обычно нас интересует поле 'enabled'
+    return curr.get("enabled", default) if isinstance(curr, dict) else default
 
+
+def _set_yaml_val(config: dict, path_keys: list, value: bool):
+    """Безопасно устанавливает значение во вложенный словарь."""
+    curr = config
+    for key in path_keys:
+        curr = curr.setdefault(key, {})
+    curr["enabled"] = value
+
+
+def run_interactive_wizard():
+    """Пошаговый интерактивный мастер настройки модулей (State Machine)."""
+    
     try:
         with open(interfaces_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
     except yaml.YAMLError as exc:
         ui.fatal(f"Ошибка чтения interfaces.yaml: {exc}")
 
-    # Настройка VFS
-    if Confirm.ask("\nВключить доступ агента к файловой системе (VFS)?", default=True):
-        config.setdefault("vfs", {})["enabled"] = True
-        ui.console.print(
-            "[dim]Уровни доступа VFS:\n"
-            "0 - Строго в sandbox/ (Безопасно)\n"
-            "1 - Чтение всего проекта, запись в sandbox/\n"
-            "2 - Чтение/Запись всего проекта (Может переписать свой код)\n"
-            "3 - God Mode (Выполнение кода на хосте ОС)[/dim]"
-        )
+    while True:
+        ui.clear_screen()
+        ui.console.print("\n[bold cyan]МАСТЕР НАСТРОЙКИ ИНТЕРФЕЙСОВ AAF[/bold cyan]")
+        ui.info("Выберите модуль, чтобы включить/выключить его.")
+        
+        # 1. Формируем динамический список кнопок
+        choices = []
+        
+        # Обрабатываем VFS отдельно, так как у него есть madness_level
+        vfs_enabled = _get_yaml_val(config, ["vfs"])
+        vfs_level = config.get("vfs", {}).get("madness_level", 0)
+        vfs_icon = "🟢 [ON] " if vfs_enabled else "🔴 [OFF]"
+        vfs_title = f"{vfs_icon} VFS (Файловая система) [Level: {vfs_level}]"
+        
+        choices.append(questionary.Choice(title=vfs_title, value="vfs_toggle"))
+        
+        # Обрабатываем остальные модули из карты
+        for name, path_keys, env_id in INTERFACES_MAP:
+            is_enabled = _get_yaml_val(config, path_keys)
+            icon = "🟢 [ON] " if is_enabled else "🔴 [OFF]"
+            choices.append(
+                questionary.Choice(title=f"{icon} {name}", value=(name, path_keys, env_id, is_enabled))
+            )
+            
+        choices.append(questionary.Separator())
+        choices.append(questionary.Choice(title="💾 Сохранить и выйти", value="save"))
+        choices.append(questionary.Choice(title="❌ Отмена (без сохранения)", value="cancel"))
 
-        level_str = ui.Prompt.ask(
-            "Выберите уровень доступа (0-3)", choices=["0", "1", "2", "3"], default="0"
-        )
-        level = int(level_str)
+        # 2. Запрашиваем действие у пользователя
+        selected = questionary.select(
+            "Навигация: ↑/↓ | Выбор: Enter",
+            choices=choices,
+            use_indicator=True
+        ).ask()
 
-        if level == 3:
-            if ui.ask_madness_confirmation():
-                config["vfs"]["madness_level"] = 3
-            else:
-                config["vfs"]["madness_level"] = 1
+        # 3. Обработка выбора
+        if selected == "cancel" or selected is None:
+            ui.warning("Изменения отменены. Возврат в главное меню.")
+            break
+            
+        elif selected == "save":
+            try:
+                with open(interfaces_path, "w", encoding="utf-8") as f:
+                    yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+                ui.success("Конфигурация интерфейсов успешно сохранена!")
+            except Exception as e:
+                ui.fatal(f"Ошибка сохранения interfaces.yaml: {e}")
+            break
+            
+        elif selected == "vfs_toggle":
+            # Переключаем VFS
+            new_state = not vfs_enabled
+            _set_yaml_val(config, ["vfs"], new_state)
+            
+            if new_state: # Если включили, спрашиваем уровень доступа
+                ui.console.print(
+                    "\n[dim]Уровни доступа VFS:\n"
+                    "0 - Строго в sandbox/ (Безопасно)\n"
+                    "1 - Чтение всего проекта, запись в sandbox/\n"
+                    "2 - Чтение/Запись всего проекта (Агент может переписать свой код)\n"
+                    "3 - God Mode (Выполнение кода на хосте ОС)[/dim]"
+                )
+                level_str = questionary.select(
+                    "Выберите уровень безумия (madness_level):",
+                    choices=["0", "1", "2", "3"],
+                    default=str(vfs_level)
+                ).ask()
+                
+                if level_str is not None:
+                    level = int(level_str)
+                    if level == 3:
+                        if ui.ask_madness_confirmation():
+                            config["vfs"]["madness_level"] = 3
+                        else:
+                            config["vfs"]["madness_level"] = 1
+                    else:
+                        config["vfs"]["madness_level"] = level
+                else:
+                    _set_yaml_val(config, ["vfs"], False) # Если отменил выбор уровня - выключаем VFS
+                    
         else:
-            config["vfs"]["madness_level"] = level
-    else:
-        config.setdefault("vfs", {})["enabled"] = False
-
-    # Настройка Telegram
-    if Confirm.ask("\nВключить Telegram Бота (aiogram)?", default=False):
-        config.setdefault("telegram", {}).setdefault("bot", {})["enabled"] = True
-        ui.info("Не забудьте добавить TELEGRAM_BOT_TOKEN в файл .env.")
-    else:
-        config.setdefault("telegram", {}).setdefault("bot", {})["enabled"] = False
-
-    # Настройка Web Search
-    if Confirm.ask("\nРазрешить агенту гуглить информацию (Web Search)?", default=True):
-        config.setdefault("web", {}).setdefault("search", {})["enabled"] = True
-    else:
-        config.setdefault("web", {}).setdefault("search", {})["enabled"] = False
-
-    # Сохраняем
-    try:
-        with open(interfaces_path, "w", encoding="utf-8") as f:
-            yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-        ui.success("Конфигурация интерфейсов успешно сохранена.")
-    except Exception as e:
-        ui.fatal(f"Ошибка сохранения interfaces.yaml: {e}")
+            # Обработка стандартного модуля
+            name, path_keys, env_id, is_enabled = selected
+            new_state = not is_enabled
+            
+            if new_state:
+                # Включаем: запрашиваем ключи у env_manager
+                keys_ok = env_manager.check_and_prompt_keys(env_id)
+                if keys_ok:
+                    _set_yaml_val(config, path_keys, True)
+                else:
+                    ui.error(f"Включение '{name}' отменено (отсутствуют обязательные ключи).")
+                    input("\n[Нажмите Enter для продолжения...]")
+            else:
+                # Выключаем
+                _set_yaml_val(config, path_keys, False)
 
 
 def run_interfaces_checks(force_wizard: bool = False):
-    ui.info("Проверка interfaces.yaml.")
+    ui.info("Проверка конфигурации интерфейсов.")
     is_new = ensure_interfaces_exists()
 
-    # Запускаем визард, если файл только что создан ИЛИ если юзер вызвал команду `wizard`
+    # Запускаем визард, если файл только что создан ИЛИ если юзер вызвал его из меню
     if is_new or force_wizard:
         run_interactive_wizard()
     else:
-        ui.success("Файл интерфейсов найден и готов.")
+        ui.success("Файлы интерфейсов в порядке.")

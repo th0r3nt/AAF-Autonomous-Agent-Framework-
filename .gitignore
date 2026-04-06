@@ -8,11 +8,12 @@ env/
 .DS_Store
 Thumbs.db
 
-# Конфиги /настройки/ключи
+# Конфиги/настройки/ключи
 .env
+agent/prompt/EXAMPLES_OF_STYLE.md
+agent/prompt/SOUL.md
 agent/config/settings.yaml
 agent/config/interfaces.yaml
-agent/llm/api_keys/api_keys_state.json
 api_keys_state.json
 
 # Базы данных и сессии
@@ -30,10 +31,9 @@ agent_db.sqlite
 
 # Sandbox
 agent/sandbox/*
-!agent/sandbox/.gitkeep
 agent/temp/*
 
-# Тяжелые локальные модели (Исправлено: добавлена 'l')
+# Локальные модели
 src/l00_utils/local/
 
 # Логи
