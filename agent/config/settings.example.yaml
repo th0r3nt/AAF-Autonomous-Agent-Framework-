@@ -64,6 +64,7 @@ memory:
 
 system:
   logging_level: INFO
+  timezone_offset_hours: 3.0
 
   flags:
     enable_proactivity: true

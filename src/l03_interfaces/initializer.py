@@ -26,23 +26,28 @@ from src.l03_interfaces.type.web.search.client import SearchClient
 
 # ==========================================
 # РЕЕСТР ИНТЕРФЕЙСОВ
-# Ключи словаря СТРОГО совпадают с ключами из interfaces.yaml
 # ==========================================
 
-INTERFACE_REGISTRY = {
-    "system": SystemClient,
-    "vfs": VFSClient,
-    "calendar": CalendarClient,
-    "email": EmailClient,
-    "geo": GeoClient,
-    "github": GithubClient,
-    "habr": HabrClient,
-    "reddit": RedditClient,
-    "bot": AiogramClient,
-    "userbot": TelethonClient,
-    "http": HTTPClient,
-    "search": SearchClient,
-}
+# Собираем все классы в один список. При добавлении нового интерфейса
+# достаточно просто добавить его класс сюда
+ALL_CLIENT_CLASSES = [
+    SystemClient,
+    VFSClient,
+    CalendarClient,
+    EmailClient,
+    GeoClient,
+    GithubClient,
+    HabrClient,
+    RedditClient,
+    AiogramClient,
+    TelethonClient,
+    HTTPClient,
+    SearchClient,
+]
+
+# Автоматически генерируем словарь { "имя_интерфейса": КлассКлиента }.
+# Берем атрибут .name прямо из класса. Это 100% исключает опечатки!
+INTERFACE_REGISTRY = {cls.name: cls for cls in ALL_CLIENT_CLASSES}
 
 
 class InterfaceInitializer:
@@ -59,7 +64,9 @@ class InterfaceInitializer:
         active_clients: dict,
     ):
         self.global_state = global_state
-        self.active_clients = active_clients  # Список для хранения активных клиентов интерфейсов
+        self.active_clients = (
+            active_clients  # Список для хранения активных клиентов интерфейсов
+        )
 
         # Вычисляем путь к песочнице
         project_root = Path(__file__).resolve().parents[3]

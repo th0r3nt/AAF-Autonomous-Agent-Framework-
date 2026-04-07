@@ -72,6 +72,7 @@ class SystemFlagsConfig(BaseModel):
 
 class SystemConfig(BaseModel):
     logging_level: str
+    timezone_offset_hours: float = 3.0
     flags: SystemFlagsConfig
 
 

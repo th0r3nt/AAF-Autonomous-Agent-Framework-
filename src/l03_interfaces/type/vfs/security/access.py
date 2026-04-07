@@ -50,6 +50,13 @@ class VFSAccessController:
         """
         clean_vpath = str(virtual_path).lstrip("/\\")
 
+        # [УМНЫЙ РОУТЕР]: Если агент забыл 'agent/' и пишет просто 'sandbox/...'
+        if self.madness_level > 0:
+            if clean_vpath.startswith("sandbox/"):
+                clean_vpath = f"agent/{clean_vpath}"
+            elif clean_vpath == "sandbox":
+                clean_vpath = "agent/sandbox"
+
         # Определяем точку отсчета в зависимости от уровня безумия
         if self.madness_level == 0:
             # Уровень 0: агент вообще не знает, что есть мир за пределами sandbox/

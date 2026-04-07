@@ -96,8 +96,9 @@ class FilesCRUD(BaseInstrument):
         abs_path = self.access_controller.resolve_path(filepath, mode="write")
 
         if not abs_path:
+            allowed_dir = "'agent/sandbox/'" if settings.interfaces.vfs.madness_level in [0, 1] else "разрешенные директории"
             return ToolResult.fail(
-                msg=f"Ошибка безопасности (Madness Level {settings.interfaces.vfs.madness_level}): Запись в '{filepath}' запрещена.",
+                msg=f"Ошибка безопасности (Madness Level {settings.interfaces.vfs.madness_level}): Запись разрешена только в {allowed_dir}. Запись в '{filepath}' запрещена.",
                 error="Access Denied",
             )
 
@@ -159,8 +160,9 @@ class FilesCRUD(BaseInstrument):
         """
         abs_path = self.access_controller.resolve_path(filepath, mode="write")
         if not abs_path:
+            allowed_dir = "'agent/sandbox/'" if settings.interfaces.vfs.madness_level in [0, 1] else "разрешенные директории"
             return ToolResult.fail(
-                msg=f"Ошибка безопасности: Удаление '{filepath}' запрещено.",
+                msg=f"Ошибка безопасности (Madness Level {settings.interfaces.vfs.madness_level}): удаление разрешено только в {allowed_dir}. Удаление '{filepath}' запрещено.",
                 error="Access Denied",
             )
 
@@ -252,8 +254,9 @@ class FilesCRUD(BaseInstrument):
         """
         abs_path = self.access_controller.resolve_path(dirpath, mode="write")
         if not abs_path:
+            allowed_dir = "'agent/sandbox/'" if settings.interfaces.vfs.madness_level in [0, 1] else "разрешенные директории"
             return ToolResult.fail(
-                msg=f"Ошибка безопасности: Операция '{action}' над '{dirpath}' запрещена.",
+                msg=f"Ошибка безопасности (Madness Level {settings.interfaces.vfs.madness_level}): Операция '{action}' разрешена только в {allowed_dir}. Операция '{action}' над '{dirpath}' запрещена.",
                 error="Access Denied",
             )
 

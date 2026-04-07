@@ -39,7 +39,7 @@ class HabrUsers(BaseInstrument):
                 fullname = data.get("fullname")
                 speciality = clean_html_to_md(data.get("speciality", "")) or "Не указана"
 
-                # Репутация (Самое важное для LLM)
+                # Репутация
                 score_stats = data.get("scoreStats", {})
                 karma = score_stats.get("score", 0)  # Карма (влияет на права)
                 rating = data.get("rating", 0)  # Рейтинг (вклад в сообщество)
@@ -58,13 +58,10 @@ class HabrUsers(BaseInstrument):
                 # Формируем имя для вывода
                 display_name = f"{fullname} (@{alias})" if fullname else f"@{alias}"
 
-                # Добавляем небольшую подсказку-маркер для LLM в зависимости от кармы
-                status_marker = ""
-
                 msg = (
                     f"--- Пользователь Хабр: {display_name} ---\n"
                     f"Специализация: {speciality}{workplace}\n"
-                    f"Репутация: Карма {karma}{status_marker} | Рейтинг {rating}\n"
+                    f"Репутация: Карма {karma} | Рейтинг {rating}\n"
                     f"Активность: Статей {articles_count} | Комментариев {comments_count} | Подписчиков {followers}"
                 )
                 return ToolResult.ok(msg=msg, data=data)

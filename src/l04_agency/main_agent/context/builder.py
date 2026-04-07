@@ -1,6 +1,7 @@
 import json
 import asyncio
 from typing import List
+from datetime import datetime, timezone, timedelta
 
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.event.models import EventEnvelope
@@ -116,11 +117,55 @@ class ContextBuilder:
     # ВНУТРЕННИЕ ФОРМАТТЕРЫ
     # ==========================================================================
 
+    def _get_datetime_str(self) -> str:
+        """Вспомогательный метод для красивого форматирования текущего времени."""
+        # Достаем смещение из настроек
+        settings_dict = self.state.settings_state.get_state()
+        tz_offset = settings_dict["system"].get("timezone_offset_hours", 3.0)
+
+        # Получаем время с учетом смещения
+        local_tz = timezone(timedelta(hours=tz_offset))
+        now = datetime.now(local_tz)
+
+        # Дни недели на русском
+        days = [
+            "понедельник",
+            "вторник",
+            "среда",
+            "четверг",
+            "пятница",
+            "суббота",
+            "воскресенье",
+        ]
+        day_name = days[now.weekday()]
+
+        # Время суток
+        hour = now.hour
+        if 5 <= hour < 12:
+            time_of_day = "утро"
+        elif 12 <= hour < 18:
+            time_of_day = "день"
+        elif 18 <= hour < 23:
+            time_of_day = "вечер"
+        else:
+            time_of_day = "ночь"
+
+        # Красиво форматируем вывод (UTC+3, UTC-5.5)
+        # Если число целое (3.0), выводим как 3. Иначе как 5.5
+        offset_formatted = int(tz_offset) if tz_offset.is_integer() else tz_offset
+        sign = "+" if tz_offset >= 0 else ""
+
+        return f"{now.strftime('%d.%m.%Y %H:%M')} (UTC{sign}{offset_formatted}, {day_name}, {time_of_day})"
+
     def _format_system_info(self) -> str:
-        """Собирает лаконичную сводку о состоянии агента."""
+        """Собирает лаконичную сводку о состоянии агента и времени."""
         agency = self.state.get_state("agency")
         main_agent = agency["main_agent"]
         subagents = agency["subagents"]
+
+        # Достаем максимальное количество шагов из настроек
+        settings_dict = self.state.settings_state.get_state()
+        max_steps = settings_dict["llm"].get("max_react_ticks", 15)
 
         status = main_agent.get("status", "unknown")
         cycle = main_agent.get("current_cycle", "unknown")
@@ -133,7 +178,17 @@ class ContextBuilder:
         d_str = format_subs(subagents.get("daemons"))
         w_str = format_subs(subagents.get("workers"))
 
-        return f"Status: {status} | Cycle: {cycle}\nDaemons: {d_str} | Workers: {w_str}"
+        # Формируем красивую дату
+        dt_str = self._get_datetime_str()
+
+        # Возвращаем обновленный блок с плейсхолдером __CURRENT_REACT_STEP__
+        return (
+            f"Current datetime: {dt_str}\n"
+            f"Status: {status} | Cycle: {cycle}\n"
+            f"Max ReAct Steps: {max_steps}\n"
+            f"Current Step: __CURRENT_REACT_STEP__\n"
+            f"Daemons: {d_str} | Workers: {w_str}"
+        )
 
     def _format_interfaces(self) -> str:
         """Собирает единый красивый блок со статусами и логами интерфейсов."""
@@ -166,7 +221,7 @@ class ContextBuilder:
             is_enabled = data.get("enabled", False)
 
             if not is_enabled:
-                lines.append(f"#### [{d_name}] ⚪️ DISABLED\n")
+                lines.append(f"#### [{d_name}] 🔴 OFFLINE\n")
                 continue
 
             client = active_map.get(key)

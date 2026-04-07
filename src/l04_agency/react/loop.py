@@ -88,26 +88,36 @@ class ReActLoop:
         current_ticks = 0
 
         system_logger.info(
-            f"[{cycle_type.upper()}] Инициализация ReAct-цикла (LLM: {self.llm_model}; Шаг: {current_ticks} Макс. шагов: {self.max_react_ticks})."
+            f"[{cycle_type.upper()}] Инициализация ReAct-цикла (LLM: {self.llm_model}; Макс. шагов: {self.max_react_ticks})."
         )
 
-        # 1. Склеиваем сообщения для LLM
+        # Запоминаем оригинальный контекст пользователя (с плейсхолдером __CURRENT_REACT_STEP__)
+        original_user_context = user_context
+
+        # Склеиваем сообщения для LLM
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_context},
+            {"role": "user", "content": original_user_context},
         ]
 
         # Вычисляем "статичный" вес в символах (для математики токенов)
         prompt_len = len(system_prompt)
         tools_len = len(json.dumps(tools, ensure_ascii=False))
 
-        self._dump_context_to_file(cycle_type, messages)
-
         while current_ticks < self.max_react_ticks:
             current_ticks += 1
             system_logger.info(
                 f"[{cycle_type.upper()}] Итерация мышления {current_ticks}/{self.max_react_ticks}."
             )
+
+            # Динамически обновляем шаг в контексте перед каждым вызовом LLM
+            messages[1]["content"] = original_user_context.replace(
+                "__CURRENT_REACT_STEP__", f"{current_ticks}/{self.max_react_ticks}"
+            )
+
+            # Сохраняем дамп контекста на ПЕРВОМ тике (когда плейсхолдер уже заменен на 1/15)
+            if current_ticks == 1:
+                self._dump_context_to_file(cycle_type, messages)
 
             if agency_state and agency_state.interrupt_buffer:
                 interrupts = []
@@ -129,10 +139,12 @@ class ReActLoop:
                         "[Interrupt Buffer]\n"
                         "Во время текущего ReAct цикла появилось входящее событие: \n\n"
                     ) + "\n---\n".join(interrupts)
-                    
+
                     # Закидываем прерывание в контекст как новое сообщение от пользователя
                     messages.append({"role": "user", "content": interrupt_msg})
-                    system_logger.warning(f"[{cycle_type.upper()}] В контекст LLM внедрено системное прерывание ({len(interrupts)} шт)!")
+                    system_logger.warning(
+                        f"[{cycle_type.upper()}] В контекст LLM внедрено системное прерывание ({len(interrupts)} шт)!"
+                    )
 
             # Создаем тик в БД ДО запроса к LLM
             current_tick = await tick_crud.create_tick(

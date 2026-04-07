@@ -2,6 +2,7 @@ import httpx
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils._tools import clean_html_to_md
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.habr.client import HabrClient
 from src.l03_interfaces.models import ToolResult
@@ -15,7 +16,7 @@ class HabrComments(BaseInstrument):
     Сервис для чтения и анализа комментариев к статьям на Хабре.
     """
 
-    def __init__(self, agent_client: 'HabrClient'):
+    def __init__(self, agent_client: "HabrClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
         self.http = agent_client.client
 
@@ -93,36 +94,38 @@ class HabrComments(BaseInstrument):
                         data=[],
                     )
 
-                # Защита: если комментов сотни, режем контекст, иначе LLM упадет по токенам
-                total_comments = len(comments_dict)
-                warning = ""
-                if total_comments > limit:
-                    warning = f"\n\n[ВНИМАНИЕ] Показаны не все комментарии (Лимит: {limit} из {total_comments})."
-                    # Хабр отдает комменты словарем {id: object}. Оставим только самые свежие/залайканные?
-                    # Проще всего оставить первые N ключей (они обычно отсортированы Хабром)
-                    comments_dict = dict(list(comments_dict.items())[-limit:])
+                # Унифицируем parentId для корней (на случай если Хабр вернет строку или None)
+                for c in comments_dict.values():
+                    if c.get("parentId") in ("0", None, ""):
+                        c["parentId"] = 0
 
-                # Строим дерево, начиная с корневых комментов (parentId = 0)
+                # Строим дерево из ВСЕХ комментариев (без преждевременного срезания)
                 tree_lines = self._build_comment_tree(
                     comments_dict, parent_id=0, depth=0, max_depth=3
                 )
 
+                # Fallback, если дерево почему-то совсем не собралось
                 if not tree_lines:
-                    # Если дерево почему-то не собралось (например, мы обрезали корни),
-                    # выводим просто списком без структуры
                     for c_id, c in comments_dict.items():
                         author = c.get("author", {}).get("alias", "Unknown")
                         text = clean_html_to_md(c.get("message", ""))[:200]
                         tree_lines.append(f"[ID: {c_id}] @{author}: {text}")
 
+                # Вот теперь безопасно ограничиваем по количеству выводимых строк (веток)
+                warning = ""
+                total_lines = len(tree_lines)
+                if total_lines > limit:
+                    warning = f"\n\n[ВНИМАНИЕ] Показаны не все комментарии (Лимит: {limit} из {total_lines})."
+                    tree_lines = tree_lines[:limit]
+
                 formatted_tree = "\n".join(tree_lines)
 
-                # Ограничиваем общую длину строки, чтобы гарантированно не взорвать контекст LLM
+                # Жесткая защита по символам (на всякий случай)
                 max_str_len = 8000
                 if len(formatted_tree) > max_str_len:
                     formatted_tree = (
                         formatted_tree[:max_str_len]
-                        + "\n...[ОБРЕЗАНО ИЗ-ЗА ПРЕВЫШЕНИЯ ЛИМИТА ТОКЕНОВ]..."
+                        + "\n...[ОБРЕЗАНО ИЗ-ЗА ПРЕВЫШЕНИЯ ЛИМИТА СИМВОЛОВ]..."
                     )
 
                 return ToolResult.ok(
@@ -147,5 +150,7 @@ class HabrComments(BaseInstrument):
             )
 
         except httpx.RequestError as e:
-            system_logger.error(f"[Habr] Ошибка сети при запросе комментов к {article_id}: {e}")
+            system_logger.error(
+                f"[Habr] Ошибка сети при запросе комментов к {article_id}: {e}"
+            )
             return ToolResult.fail(msg=f"Ошибка сети: {e}", error=str(e))

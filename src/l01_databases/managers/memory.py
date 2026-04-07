@@ -162,12 +162,12 @@ class VectorGraphMemory(BaseInstrument):
                                 "distance": res["distances"][0][
                                     i
                                 ],  # В ChromaDB дистанция (меньше - лучше)
-                                "source": f"vector_{v_col.name}", # ИСПРАВЛЕНО
+                                "source": f"vector_{v_col.name}",  # ИСПРАВЛЕНО
                             }
                         )
             except Exception as e:
                 system_logger.error(
-                    f"[Vector-Graph-RAG] Ошибка векторного поиска в {v_col.name}: {e}" # ИСПРАВЛЕНО
+                    f"[Vector-Graph-RAG] Ошибка векторного поиска в {v_col.name}: {e}"  # ИСПРАВЛЕНО
                 )
 
         return candidates
@@ -287,7 +287,11 @@ class VectorGraphMemory(BaseInstrument):
         for c in top_cands:
             source = c["source"].upper()
             date = c.get("date", "Дата неизвестна")
-            formatted_result.append(f"[{source} | {date}] {c['text']}")
+
+            # Схлопываем все физические переносы строк и табы в один пробел
+            clean_text = re.sub(r"\s+", " ", c["text"]).strip()
+
+            formatted_result.append(f"[{source} | {date}] {clean_text}")
 
         return "\n".join(formatted_result)
 

@@ -34,15 +34,16 @@ class HabrNews(BaseInstrument):
                     "hl": "ru",
                     "fl": "ru",
                     "page": 1,
-                    "period": "all"
+                    "period": "alltime"
                 },
             )
 
             if response.status_code == 200:
                 data = response.json()
-                article_ids = data.get("articleIds", [])
-                article_refs = data.get("articleRefs", {})
-
+                
+                # Проверяем сначала newsIds, потом articleIds
+                article_ids = data.get("newsIds") or data.get("articleIds",[])
+                article_refs = data.get("newsRefs") or data.get("articleRefs", {})
                 if not article_ids:
                     return ToolResult.fail(
                         msg=f"[Habr News] По запросу '{query}' ничего не найдено."
@@ -95,13 +96,15 @@ class HabrNews(BaseInstrument):
 
             if response.status_code == 200:
                 data = response.json()
-                article_ids = data.get("articleIds", [])
-                article_refs = data.get("articleRefs", {})
+                
+                # Хабр для news=true возвращает newsIds и newsRefs вместо articleIds
+                article_ids = data.get("newsIds") or data.get("articleIds",[])
+                article_refs = data.get("newsRefs") or data.get("articleRefs", {})
 
                 if not article_ids:
                     return ToolResult.fail(msg="[Habr News] Новых новостей пока нет.")
 
-                result = ["Последние новости на Хабре:"]
+                result =["Последние новости на Хабре:"]
 
                 for a_id in article_ids[:limit]:
                     article = article_refs.get(str(a_id), {})

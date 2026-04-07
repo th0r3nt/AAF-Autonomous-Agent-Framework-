@@ -31,7 +31,14 @@ class HabrArticles(BaseInstrument):
             # Эндпоинт поиска Хабра
             response = await self.http.get(
                 "/articles/",
-                params={"query": query, "hl": "ru", "fl": "ru", "page": 1},
+                params={
+                    "query": query, 
+                    "hl": "ru", 
+                    "fl": "ru", 
+                    "page": 1,
+                    "order": "relevance",
+                    "period": "alltime" 
+                },
             )
 
             if response.status_code == 200:
@@ -174,7 +181,7 @@ class HabrArticles(BaseInstrument):
 
                     result.append(f"- ID: {a_id} (Рейтинг: {score}): {title}")
 
-                return ToolResult.ok(msg="\n".join(result), data=data)
+                return ToolResult.ok(msg="\n".join(result), data=data) #
 
             return ToolResult.fail(
                 msg=f"Ошибка получения ленты хаба. HTTP {response.status_code}",
