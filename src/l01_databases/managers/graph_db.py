@@ -1,4 +1,5 @@
 import asyncio
+from typing import Literal
 
 from src.l00_utils.managers.logger import system_logger
 from src.l03_interfaces.type.base import BaseInstrument
@@ -95,16 +96,14 @@ class GraphManager(BaseInstrument):
 
     @skill()
     async def add_graph_relationship(
-        self, source_name: str, target_name: str, rel_type: str, context: str = ""
+        self, 
+        source_name: str, 
+        target_name: str, 
+        rel_type: Literal["IS_A", "HAS_PROPERTY", "CAUSES", "REQUIRES", "RELATED_TO"], 
+        context: str = ""
     ) -> ToolResult:
         """
         Создает связь между двумя существующими концептами в графе.
-        Разрешены следующие типы связей (rel_type):
-        - IS_A
-        - HAS_PROPERTY
-        - CAUSES
-        - REQUIRES
-        - RELATED_TO
         """
         valid_rels = ["IS_A", "HAS_PROPERTY", "CAUSES", "REQUIRES", "RELATED_TO"]
         if rel_type not in valid_rels:

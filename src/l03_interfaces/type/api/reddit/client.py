@@ -28,6 +28,8 @@ class RedditClient(BaseClient):
     AUTH_URL = "https://www.reddit.com/api/v1/access_token"
     BASE_URL = "https://oauth.reddit.com"
 
+    name = "reddit"  # Имя для маппинга
+
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
 

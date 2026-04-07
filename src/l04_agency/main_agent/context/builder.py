@@ -18,7 +18,7 @@ from src.l04_agency.skills.registry import ToolRegistry
 
 class ContextBuilder:
     """
-    Асинхронный класс. Собирает данные из баз и интерфейсов, 
+    Асинхронный класс. Собирает данные из баз и интерфейсов,
     затем компилирует их в финальный Markdown для системного промпта LLM.
     """
 
@@ -45,27 +45,23 @@ class ContextBuilder:
         self.tools_registry = tools_registry
 
     async def build_context(self, envelope: EventEnvelope, cycle_type: str) -> str:
-        """Главная точка входа для сбора контекста."""
         system_logger.debug(f"[ContextBuilder] Начат сбор данных для цикла: {cycle_type}")
         search_query = envelope.data.get("text", envelope.source)
 
-        # Вытаскиваем нужную глубину контекста для текущего цикла из настроек
         settings_dict = self.state.settings_state.get_state()
         try:
             ticks_limit = settings_dict["llm"]["context_depth"][cycle_type]["number_of_ticks"]
         except KeyError:
-            ticks_limit = 30  # Фолбэк на случай, если что-то пойдет не так
+            ticks_limit = 30
 
-        # ==========================================================================
         # Параллельные запросы к базам данных
-        # ==========================================================================
         fetch_tasks = [
-            self.traits.get_all_traits_markdown(),              # [0] personality_traits
-            self.mental_state.get_entities_markdown(10),        # [1] mental_state
-            self.event.get_pending_events_markdown(limit=10),   # [2] calendar
-            self.task.get_tasks_markdown("pending", limit=5),   # [3] tasks
-            self.tick.get_ticks_markdown(limit=ticks_limit),    # [4] recent_ticks
-            self.memory.recall_memory(search_query),            # [5] vector_graph
+            self.traits.get_all_traits_markdown(),
+            self.mental_state.get_entities_markdown(10),
+            self.event.get_pending_events_markdown(limit=10),
+            self.task.get_tasks_markdown("pending", limit=5),
+            self.tick.get_ticks_markdown(limit=ticks_limit),
+            self.memory.recall_memory(search_query),
         ]
         results = await asyncio.gather(*fetch_tasks)
 
@@ -76,21 +72,15 @@ class ContextBuilder:
         recent_ticks = results[4]
         vector_graph = results[5]
 
-        # ==========================================================================
-        # Форматирование данных из оперативной памяти
-        # ==========================================================================
-
-        system_info = self.state.get_markdown(settings=False)
-        interfaces = self._format_interfaces(self._get_interfaces_data())
+        # Форматируем системную информацию и интерфейсы
+        system_info = self._format_system_info()
+        interfaces = self._format_interfaces()
         skills_library = self._format_skills_library(self.tools_registry.get_all_tools())
         incoming_event = self._format_incoming_event(envelope)
 
         system_logger.debug("[ContextBuilder] Сбор данных завершен. Формируем Markdown.")
 
-        # ==========================================================================
-        # Итоговая сборка
-        # ==========================================================================
-        result = f"""
+        return f"""
 ## PERSONALITY TRAITS
 {personality}
 
@@ -120,59 +110,102 @@ class ContextBuilder:
 
 ## VECTOR-GRAPH
 {vector_graph}
-"""
-        return result.strip()
+""".strip()
 
     # ==========================================================================
     # ВНУТРЕННИЕ ФОРМАТТЕРЫ
     # ==========================================================================
 
-    def _format_interfaces(self, interfaces_data: dict) -> str:
-        if not interfaces_data:
-            return "Нет активных интерфейсов."
-            
+    def _format_system_info(self) -> str:
+        """Собирает лаконичную сводку о состоянии агента."""
+        agency = self.state.get_state("agency")
+        main_agent = agency["main_agent"]
+        subagents = agency["subagents"]
+
+        status = main_agent.get("status", "unknown")
+        cycle = main_agent.get("current_cycle", "unknown")
+
+        def format_subs(group):
+            if not group:
+                return "Нет активных"
+            return ", ".join([f"{name} ({info['status']})" for name, info in group.items()])
+
+        d_str = format_subs(subagents.get("daemons"))
+        w_str = format_subs(subagents.get("workers"))
+
+        return f"Status: {status} | Cycle: {cycle}\nDaemons: {d_str} | Workers: {w_str}"
+
+    def _format_interfaces(self) -> str:
+        """Собирает единый красивый блок со статусами и логами интерфейсов."""
+        config = self.state.get_state("interfaces")
         lines = []
-        for name, data in interfaces_data.items():
-            status = data.get("status", "UNKNOWN")
-            lines.append(f"#### [{name.upper()}] {status}")
-            
-            recent = data.get("recent_activity", [])
+
+        # Маппинг активных клиентов по их атрибуту name
+        active_map = {
+            getattr(c, "name", type(c).__name__.lower()): c for c in self.active_clients
+        }
+
+        # Красивые имена для вывода в консоль LLM
+        display_names = {
+            "telegram bot": "Telegram Bot",
+            "telegram userbot": "Telegram Userbot",
+            "github": "GitHub",
+            "habr": "Habr",
+            "reddit": "Reddit",
+            "email": "Email",
+            "browser": "Web Browser",
+            "http": "Web HTTP",
+            "web search": "Web Search",
+            "calendar": "Local Calendar",
+            "system": "System",
+            "vfs": "VFS",
+        }
+
+        for key, data in sorted(config.items()):
+            d_name = display_names.get(key, key.upper())
+            is_enabled = data.get("enabled", False)
+
+            if not is_enabled:
+                lines.append(f"#### [{d_name}] ⚪️ DISABLED\n")
+                continue
+
+            client = active_map.get(key)
+
+            if not client:
+                # Включен в конфиге, но класс не инициализировался (ошибка или нет ключей)
+                lines.append(f"#### [{d_name}] 🔴 OFFLINE / NO KEYS\n")
+                continue
+
+            ctx = client.get_passive_context()
+            status = ctx.get("status", "🟢 ONLINE")
+            lines.append(f"#### [{d_name}] {status}")
+
+            recent = ctx.get("recent_activity", [])
             if recent:
                 for act in recent:
                     lines.append(f"- {act}")
             else:
                 lines.append("- Нет недавней активности.")
-                
-        return "\n".join(lines)
+            lines.append("")  # Пустая строка для разделения
+
+        return "\n".join(lines).strip()
 
     def _format_skills_library(self, skills: list) -> str:
         if not skills:
             return "Функции не зарегистрированы."
-        return "\n".join([f"- `{s['id']}` - {s['description']}" for s in skills])
+        return "\n".join(
+            [f"- `{s['id']}{s.get('signature', '()')}` - {s['description']}" for s in skills]
+        )
 
     def _format_incoming_event(self, envelope: EventEnvelope) -> str:
-        # Безопасный дамп полезной нагрузки
         try:
             data_str = json.dumps(envelope.data, ensure_ascii=False, indent=2)
         except Exception:
             data_str = str(envelope.data)
-            
+
         return (
             f"Источник: {envelope.source}\n"
             f"Событие: {envelope.routing_key}\n"
             f"Время (UTC): {envelope.timestamp_utc.strftime('%Y-%m-%d %H:%M:%S')}\n"
             f"Содержание:\n```json\n{data_str}\n```"
         )
-
-    # ==========================================================================
-    # СЛУЖЕБНЫЕ МЕТОДЫ
-    # ==========================================================================
-
-    def _get_interfaces_data(self) -> dict:
-        """Опрашивает локальные кэши всех живых клиентов."""
-        interfaces_data = {}
-        for client in self.active_clients:
-            client_name = getattr(client, "name", type(client).__name__.lower())
-            if hasattr(client, "get_passive_context"):
-                interfaces_data[client_name] = client.get_passive_context()
-        return interfaces_data

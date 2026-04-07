@@ -68,7 +68,7 @@ class AiogramEvents:
                 is_mention = True
 
         time_str = datetime.datetime.now().strftime("%H:%M")
-        log_str = f"[{time_str}] @{username} (Bot Chat): {text[:1000]}"
+        log_str = f"[{time_str}] @{username} (ChatID: {chat_id}): {text[:1000]}"
         self.client.recent_activity.append(log_str)
 
         try:

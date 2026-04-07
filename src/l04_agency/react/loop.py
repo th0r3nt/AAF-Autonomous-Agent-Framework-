@@ -1,8 +1,7 @@
-# Файл: src/l04_agency/react/loop.py
-
 import json
 import datetime
 from typing import Dict, Any
+import openai
 
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings
@@ -97,6 +96,8 @@ class ReActLoop:
         prompt_len = len(system_prompt)
         tools_len = len(json.dumps(tools, ensure_ascii=False))
 
+        self._dump_context_to_file(cycle_type, messages)
+
         while current_ticks < self.max_react_ticks:
             current_ticks += 1
             system_logger.debug(
@@ -107,7 +108,7 @@ class ReActLoop:
                 # Получаем живую сессию (APIKeyRotator внутри сам подставит ключ)
                 session = await self.client.get_session()
 
-                # Вызов LLM (заставляем использовать execute_skill через tool_choice)
+                # Вызов LLM
                 response = await session.chat.completions.create(
                     model=self.llm_model,
                     messages=messages,
@@ -217,14 +218,22 @@ class ReActLoop:
                     }
                 )
 
+            except openai.RateLimitError:
+                # Перехватываем 429 ошибку
+                system_logger.warning(
+                    f"[{cycle_type.upper()}] Ключ улетел в Rate Limit (429). Ротация ключа и повторная попытка."
+                )
+                # Блокируем сгоревший ключ
+                await self.key_rotator.mark_key_exhausted(session.api_key)
+
+                # Откатываем счетчик тиков на шаг назад, чтобы не тратить лимит итераций на технические сбои,
+                # и делаем continue, чтобы цикл while сразу пошел на следующий круг с новым ключом
+                current_ticks -= 1
+                continue
+
             except Exception as e:
                 system_logger.error(f"[ReAct Loop] Ошибка при вызове {self.llm_model}: {e}")
-                # Если 429 (Rate Limit) - можно было бы вызвать rotator.mark_key_exhausted(),
-                # но так как мы прокидываем Exception, это стоит отлавливать выше
                 raise e
-
-        # Дампим контекст по завершению цикла
-        self._dump_context_to_file(cycle_type, messages)
 
         if current_ticks >= self.max_react_ticks:
             system_logger.warning(

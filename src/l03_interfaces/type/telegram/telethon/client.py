@@ -38,7 +38,7 @@ load_dotenv()
 class TelethonClient(BaseClient):
     """Асинхронный клиент (Userbot) для Telegram API на базе Telethon."""
 
-    name = "telegram"
+    name = "telegram userbot"  # Имя для маппинга
 
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus

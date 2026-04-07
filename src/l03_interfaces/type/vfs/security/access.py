@@ -34,6 +34,15 @@ class VFSAccessController:
             ]
         )
 
+    def _is_blacklisted(self, target_path: Path) -> bool:
+        """Проверяет, не попадает ли путь под жесткие ограничения."""
+        for blacklisted_item in self.HARD_BLACKLIST:
+            # Превращаем строку из блэклиста в Path относительно корня
+            blacklisted_path = (self.project_root / blacklisted_item).resolve()
+            if target_path.is_relative_to(blacklisted_path) or target_path == blacklisted_path:
+                return True
+        return False
+
     def resolve_path(self, virtual_path: str, mode: str = "read") -> Path | None:
         """
         Главный метод-шлюз. Принимает путь от агента и возвращает абсолютный путь Path,

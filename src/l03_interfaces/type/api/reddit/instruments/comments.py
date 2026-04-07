@@ -1,7 +1,10 @@
 from src.l00_utils.managers.logger import system_logger
-from typing import TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Literal
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.reddit.client import RedditClient
+
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -11,9 +14,9 @@ from src.l04_agency.skills.registry import skill
 class RedditComments(BaseInstrument):
     """Сервис для чтения веток комментариев, ответов и модерации своих сообщений."""
 
-    def __init__(self, client: 'RedditClient'):
+    def __init__(self, client: "RedditClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
-        self.api = client.transport
+        self.api = client.transport  # TODO: trasport удален, исправить
 
     def _ensure_prefix(self, item_id: str, prefix: str) -> str:
         """
@@ -98,7 +101,9 @@ class RedditComments(BaseInstrument):
                 )
                 new_id = new_comment_data.get("id", "unknown")
 
-                system_logger.info(f"[Reddit] Успешный ответ на {parent_fullname}. ID: {new_id}")
+                system_logger.info(
+                    f"[Reddit] Успешный ответ на {parent_fullname}. ID: {new_id}"
+                )
                 return ToolResult.ok(
                     msg=f"Комментарий успешно опубликован. Ваш ID: {new_id}",
                     data=new_comment_data,
@@ -140,14 +145,20 @@ class RedditComments(BaseInstrument):
                 data_list = response.json()
 
                 if len(data_list) < 2:
-                    return ToolResult.ok(msg=f"К посту {post_id} пока нет комментариев.", data=[])
+                    return ToolResult.ok(
+                        msg=f"К посту {post_id} пока нет комментариев.", data=[]
+                    )
 
                 comments_data = data_list[1].get("data", {}).get("children", [])
 
                 if not comments_data:
-                    return ToolResult.ok(msg=f"К посту {post_id} пока нет комментариев.", data=[])
+                    return ToolResult.ok(
+                        msg=f"К посту {post_id} пока нет комментариев.", data=[]
+                    )
 
-                tree_lines = self._build_comment_tree(comments_data, depth=0, max_depth=max_depth)
+                tree_lines = self._build_comment_tree(
+                    comments_data, depth=0, max_depth=max_depth
+                )
                 formatted_tree = "\n".join(tree_lines)
 
                 return ToolResult.ok(
@@ -156,7 +167,9 @@ class RedditComments(BaseInstrument):
                 )
 
             elif response.status_code == 404:
-                return ToolResult.fail(msg=f"Пост {post_id} не найден.", error="HTTP 404 Not Found")
+                return ToolResult.fail(
+                    msg=f"Пост {post_id} не найден.", error="HTTP 404 Not Found"
+                )
 
             return ToolResult.fail(
                 msg=f"Ошибка получения комментариев. HTTP {response.status_code}",
@@ -164,7 +177,9 @@ class RedditComments(BaseInstrument):
             )
 
         except Exception as e:
-            system_logger.error(f"[Reddit] Ошибка сети при парсинге комментариев {post_id}: {e}")
+            system_logger.error(
+                f"[Reddit] Ошибка сети при парсинге комментариев {post_id}: {e}"
+            )
             return ToolResult.fail(msg=f"Ошибка сети при парсинге: {e}", error=str(e))
 
     @skill()
@@ -208,9 +223,9 @@ class RedditComments(BaseInstrument):
             return ToolResult.fail(msg=f"Ошибка сети при удалении: {e}", error=str(e))
 
     @skill()
-    async def vote_comment(self, comment_id: str, direction: int) -> ToolResult:
+    async def vote_comment(self, comment_id: str, direction: Literal[1, 0, -1]) -> ToolResult:
         """
-        Голосует за комментарий: 1 (Upvote), -1 (Downvote), 0 (Снять голос).
+        Голосует за комментарий.
         """
         fullname = self._ensure_prefix(comment_id, "t1_")
 
@@ -227,7 +242,9 @@ class RedditComments(BaseInstrument):
                     if direction == 1
                     else "Downvote (👎)" if direction == -1 else "Сброс голоса"
                 )
-                return ToolResult.ok(msg=f"Успешно: {action_str} для комментария {comment_id}.")
+                return ToolResult.ok(
+                    msg=f"Успешно: {action_str} для комментария {comment_id}."
+                )
 
             return ToolResult.fail(
                 msg=f"Не удалось проголосовать. HTTP {response.status_code}",

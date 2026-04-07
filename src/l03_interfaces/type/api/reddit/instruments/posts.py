@@ -1,7 +1,10 @@
+from typing import TYPE_CHECKING, Literal
+
 from src.l00_utils.managers.logger import system_logger
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.reddit.client import RedditClient
+
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -13,7 +16,7 @@ class RedditPosts(BaseInstrument):
 
     def __init__(self, client: 'RedditClient'):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
-        self.api = client.transport
+        self.api = client.transport # TODO заменить, будет ошибка (transport теперь не существует)
 
     def _ensure_post_fullname(self, post_id: str) -> str:
         """Вспомогательный метод. Убеждается, что ID поста имеет префикс 't3_'."""
@@ -150,10 +153,9 @@ class RedditPosts(BaseInstrument):
             return ToolResult.fail(msg=f"Критическая ошибка при публикации: {e}", error=str(e))
 
     @skill()
-    async def vote_post(self, post_id: str, direction: int) -> ToolResult:
+    async def vote_post(self, post_id: str, direction: Literal[1, 0, -1]) -> ToolResult:
         """
         Голосует за пост.
-        direction: 1 (Upvote), -1 (Downvote), 0 (Снять голос)
         """
         if direction not in [1, 0, -1]:
             return ToolResult.fail(

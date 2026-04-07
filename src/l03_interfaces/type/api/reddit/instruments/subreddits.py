@@ -1,7 +1,10 @@
 from src.l00_utils.managers.logger import system_logger
-from typing import TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Literal
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.reddit.client import RedditClient
+
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -11,9 +14,9 @@ from src.l04_agency.skills.registry import skill
 class RedditSubreddits(BaseInstrument):
     """Сервис для поиска сабреддитов, чтения правил и получения постов."""
 
-    def __init__(self, client: 'RedditClient'):
+    def __init__(self, client: "RedditClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
-        self.api = client.transport
+        self.api = client.transport  # TODO: исправить
 
     def _clean_sub_name(self, name: str) -> str:
         """
@@ -51,7 +54,9 @@ class RedditSubreddits(BaseInstrument):
                 return ToolResult.ok(msg=msg, data=data)
 
             elif response.status_code == 404:
-                return ToolResult.fail(msg=f"Сабреддит r/{subreddit} не найден.", error="HTTP 404")
+                return ToolResult.fail(
+                    msg=f"Сабреддит r/{subreddit} не найден.", error="HTTP 404"
+                )
             elif response.status_code == 403:
                 return ToolResult.fail(
                     msg=f"Доступ к r/{subreddit} запрещен (Private сообщество).",
@@ -149,11 +154,13 @@ class RedditSubreddits(BaseInstrument):
 
     @skill()
     async def get_subreddit_feed(
-        self, subreddit: str, sort_by: str = "hot", limit: int = 5
+        self,
+        subreddit: str,
+        sort_by: Literal["hot", "new", "top", "rising"] = "hot",
+        limit: int = 5,
     ) -> ToolResult:
         """
         Получает ленту постов из саба.
-        sort_by может быть: hot, new, top, rising
         """
         subreddit = self._clean_sub_name(subreddit)
         if sort_by not in ["hot", "new", "top", "rising"]:
@@ -188,7 +195,9 @@ class RedditSubreddits(BaseInstrument):
                 return ToolResult.ok(msg="\n\n".join(result), data=children)
 
             elif response.status_code == 404:
-                return ToolResult.fail(msg=f"Сабреддит r/{subreddit} не найден.", error="HTTP 404")
+                return ToolResult.fail(
+                    msg=f"Сабреддит r/{subreddit} не найден.", error="HTTP 404"
+                )
 
             return ToolResult.fail(
                 msg=f"Ошибка получения ленты. HTTP {response.status_code}",

@@ -2,11 +2,13 @@ import os
 import shutil
 import asyncio
 from pathlib import Path
+from typing import TYPE_CHECKING, Literal
 
 from src.l00_utils.managers.logger import system_logger
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.vfs.client import VFSClient
+
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -148,12 +150,9 @@ class FilesArchive(BaseInstrument):
 
     @skill()
     async def create_archive(
-        self, source_path: str, archive_name: str, format: str = "zip"
+        self, source_path: str, archive_name: str, format: Literal["zip", "tar", "gztar"] = "zip"
     ) -> ToolResult:
         """
         Упаковывает директорию или файл в архив.
-        :param source_path: Путь к файлу или папке, которые нужно сжать.
-        :param archive_name: Имя будущего архива (например, 'results/data_backup').
-        :param format: Формат: 'zip', 'tar' или 'gztar' (по умолчанию 'zip').
         """
         return await asyncio.to_thread(self._sync_create_archive, source_path, archive_name, format)

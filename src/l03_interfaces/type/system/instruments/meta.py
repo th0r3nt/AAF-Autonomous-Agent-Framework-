@@ -1,7 +1,9 @@
 from src.l00_utils.managers.logger import system_logger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.system.client import SystemClient
+
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -11,7 +13,7 @@ from src.l04_agency.skills.registry import skill
 class SystemMeta(BaseInstrument):
     """Инструменты для управления собственными настройками агента в рантайме."""
 
-    def __init__(self, client: 'SystemClient'):
+    def __init__(self, client: "SystemClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
         self.state_manager = client.global_state.settings_state
 
@@ -28,8 +30,12 @@ class SystemMeta(BaseInstrument):
 
         success = self.state_manager.update("rhythms.proactivity_interval_sec", seconds)
         if success:
-            system_logger.info(f"[System Meta] Интервал проактивности изменен на {seconds} сек.")
-            return ToolResult.ok(msg=f"Интервал проактивности успешно изменен на {seconds} секунд.")
+            system_logger.info(
+                f"[System Meta] Интервал проактивности изменен на {seconds} сек."
+            )
+            return ToolResult.ok(
+                msg=f"Интервал проактивности успешно изменен на {seconds} секунд."
+            )
 
         return ToolResult.fail(msg="Ошибка изменения интервала проактивности.")
 
@@ -46,8 +52,12 @@ class SystemMeta(BaseInstrument):
 
         success = self.state_manager.update("rhythms.consolidation_interval_sec", seconds)
         if success:
-            system_logger.info(f"[System Meta] Интервал консолидации изменен на {seconds} сек.")
-            return ToolResult.ok(msg=f"Интервал консолидации успешно изменен на {seconds} секунд.")
+            system_logger.info(
+                f"[System Meta] Интервал консолидации изменен на {seconds} сек."
+            )
+            return ToolResult.ok(
+                msg=f"Интервал консолидации успешно изменен на {seconds} секунд."
+            )
 
         return ToolResult.fail(msg="Ошибка изменения интервала консолидации.")
 
@@ -85,7 +95,9 @@ class SystemMeta(BaseInstrument):
         Диапазон: от 0.0 (строгая логика) до 1.0 (креативность).
         """
         if not (0.0 <= temp <= 1.0):
-            return ToolResult.fail(msg="Ошибка: Температура должна быть в диапазоне от 0.0 до 1.0.")
+            return ToolResult.fail(
+                msg="Ошибка: Температура должна быть в диапазоне от 0.0 до 1.0."
+            )
 
         success = self.state_manager.update("llm.temperature", temp)
         if success:
@@ -124,10 +136,11 @@ class SystemMeta(BaseInstrument):
         return ToolResult.fail(msg="Ошибка переключения модели LLM.")
 
     @skill()
-    async def set_logging_level(self, level: str) -> ToolResult:
+    async def set_logging_level(
+        self, level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+    ) -> ToolResult:
         """
         Изменяет уровень логирования системы в консоль и файл.
-        Доступные значения: DEBUG, INFO, WARNING, ERROR.
         """
         level = level.upper()
         if level not in ["DEBUG", "INFO", "WARNING", "ERROR"]:

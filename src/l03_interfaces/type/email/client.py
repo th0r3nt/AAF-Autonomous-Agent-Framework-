@@ -26,6 +26,8 @@ load_dotenv()
 class EmailClient(BaseClient):
     """Клиент для работы агента с электронной почтой (IMAP/SMTP)."""
 
+    name = "email"  # Имя для маппинга
+
     def __init__(self, event_bus: EventBus, sandbox_dir: Path):
         self.event_bus = event_bus
 

@@ -24,6 +24,8 @@ load_dotenv()
 class HabrClient(BaseClient):
     """Асинхронный клиент для работы ИИ-агента с Habr."""
 
+    name = "habr"  # Имя для маппинга
+
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
 

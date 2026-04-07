@@ -1,10 +1,12 @@
 import hashlib
 import asyncio
+from typing import TYPE_CHECKING, Literal
 
 from src.l00_utils.managers.logger import system_logger
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.vfs.client import VFSClient
+
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -17,7 +19,7 @@ class FilesCrypto(BaseInstrument):
     Позволяет агенту проверять целостность файлов, искать дубликаты и отслеживать изменения.
     """
 
-    def __init__(self, client: 'VFSClient'):
+    def __init__(self, client: "VFSClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
 
         self.vfs_client = client
@@ -65,7 +67,9 @@ class FilesCrypto(BaseInstrument):
             digest = hasher.hexdigest()
             size_mb = abs_path.stat().st_size / (1024 * 1024)
 
-            system_logger.debug(f"[VFS Crypto] Вычислен {algo.upper()} для {filepath}: {digest}")
+            system_logger.debug(
+                f"[VFS Crypto] Вычислен {algo.upper()} для {filepath}: {digest}"
+            )
 
             msg = (
                 f"Файл: '{filepath}' (Размер: {size_mb:.2f} MB)\n"
@@ -97,10 +101,10 @@ class FilesCrypto(BaseInstrument):
     # ==========================================
 
     @skill()
-    async def calculate_hash(self, filepath: str, algorithm: str = "sha256") -> ToolResult:
+    async def calculate_hash(
+        self, filepath: str, algorithm: Literal["md5", "sha1", "sha256", "sha512"] = "sha256"
+    ) -> ToolResult:
         """
         Вычисляет хэш-сумму файла по заданному алгоритму.
-        :param filepath: Относительный путь к файлу в песочнице (например, 'data/model.bin').
-        :param algorithm: Алгоритм хэширования ('md5', 'sha1', 'sha256', 'sha512'). По умолчанию 'sha256'.
         """
         return await asyncio.to_thread(self._sync_calculate_hash, filepath, algorithm)

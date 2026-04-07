@@ -1,10 +1,12 @@
 import httpx
+from typing import TYPE_CHECKING, Literal
 
 from src.l00_utils.managers.logger import system_logger
-from src.l03_interfaces.type.base import BaseInstrument
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.github.client import GithubClient
+
+from src.l03_interfaces.type.base import BaseInstrument
 from src.l03_interfaces.models import ToolResult
 
 from src.l04_agency.skills.registry import skill
@@ -13,7 +15,7 @@ from src.l04_agency.skills.registry import skill
 class GithubPullRequest(BaseInstrument):
     """Сервис для работы с Pull Requests (просмотр кода, код-ревью, создание и слияние)."""
 
-    def __init__(self, agent_client: 'GithubClient'):
+    def __init__(self, agent_client: "GithubClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
         self.http = agent_client.client
 
@@ -98,9 +100,13 @@ class GithubPullRequest(BaseInstrument):
             if response.status_code == 200:
                 files = response.json()
                 if not files:
-                    return ToolResult.ok(msg=f"В PR #{pr_number} нет измененных файлов.", data=[])
+                    return ToolResult.ok(
+                        msg=f"В PR #{pr_number} нет измененных файлов.", data=[]
+                    )
 
-                result = [f"Измененные файлы в PR #{pr_number} (показано до {max_files} файлов):"]
+                result = [
+                    f"Измененные файлы в PR #{pr_number} (показано до {max_files} файлов):"
+                ]
 
                 for f in files:
                     filename = f.get("filename")
@@ -116,7 +122,9 @@ class GithubPullRequest(BaseInstrument):
 
                     if patch:
                         if len(patch) > 3000:
-                            patch = patch[:3000] + "\n...[ДИФФ ОБРЕЗАН ДЛЯ ЭКОНОМИИ КОНТЕКСТА] ..."
+                            patch = (
+                                patch[:3000] + "\n...[ДИФФ ОБРЕЗАН ДЛЯ ЭКОНОМИИ КОНТЕКСТА] ..."
+                            )
                         result.append("```diff\n" + patch + "\n```")
                     else:
                         result.append(
@@ -132,15 +140,20 @@ class GithubPullRequest(BaseInstrument):
 
         except httpx.RequestError as e:
             system_logger.error(f"[GitHub] Ошибка запроса diff для PR #{pr_number}: {e}")
-            return ToolResult.fail(msg=f"Ошибка сети при запросе изменений кода: {e}", error=str(e))
+            return ToolResult.fail(
+                msg=f"Ошибка сети при запросе изменений кода: {e}", error=str(e)
+            )
 
     @skill()
     async def submit_pull_request_review(
-        self, repo_name: str, pr_number: int, event: str, body: str
+        self,
+        repo_name: str,
+        pr_number: int,
+        event: Literal["APPROVE", "REQUEST_CHANGES", "COMMENT"],
+        body: str,
     ) -> ToolResult:
         """
         Отправляет формальное Code Review.
-        :param event: Должен быть 'APPROVE', 'REQUEST_CHANGES' или 'COMMENT'.
         """
         repo_name = self._clean_repo_name(repo_name)
         event = event.upper()
@@ -178,11 +191,13 @@ class GithubPullRequest(BaseInstrument):
 
     @skill()
     async def merge_pull_request(
-        self, repo_name: str, pr_number: int, merge_method: str = "squash"
+        self,
+        repo_name: str,
+        pr_number: int,
+        merge_method: Literal["merge", "squash", "rebase"] = "squash",
     ) -> ToolResult:
         """
         Сливает PR в целевую ветку.
-        :param merge_method: 'merge', 'squash', или 'rebase' (рекомендуется squash для чистоты истории).
         """
         repo_name = self._clean_repo_name(repo_name)
         if merge_method not in ["merge", "squash", "rebase"]:

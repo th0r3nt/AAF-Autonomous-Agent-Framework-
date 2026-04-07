@@ -29,17 +29,14 @@ class BaseClient(ABC):
     async def close(self) -> None:
         """Очистка ресурсов при выключении системы."""
         pass
-    
+
     def get_passive_context(self) -> dict:
         """
         Возвращает слепок последних событий интерфейса из оперативной памяти (O(1)).
         Не делает сетевых запросов.
         """
-        return {
-            "name": self.name,
-            "status": "online",
-            "recent_activity": []
-        }
+        return {"name": self.name, "status": "online", "recent_activity": []}
+
 
 class BaseInstrument:
     """
@@ -78,8 +75,13 @@ class BaseInstrument:
                 method_domain = getattr(attr_value, "__skill_domain__") or class_domain
                 name = getattr(attr_value, "__skill_name__")
                 desc = getattr(attr_value, "__skill_desc__")
+                sig = getattr(attr_value, "__skill_signature__", "()")
 
-                # Регистрируем навык (получится api.github.instruments.issues.get_issue)
+                # Регистрируем навык (передаем сигнатуру)
                 ToolRegistry.register(
-                    domain=method_domain, name=name, description=desc, func=attr_value
+                    domain=method_domain,
+                    name=name,
+                    description=desc,
+                    signature=sig,
+                    func=attr_value,
                 )

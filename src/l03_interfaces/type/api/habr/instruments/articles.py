@@ -1,9 +1,12 @@
 import httpx
+from typing import TYPE_CHECKING, Literal
+
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils._tools import clean_html_to_md
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.habr.client import HabrClient
+
 from src.l03_interfaces.models import ToolResult
 from src.l03_interfaces.type.base import BaseInstrument
 
@@ -15,7 +18,7 @@ class HabrArticles(BaseInstrument):
     Сервис для поиска и чтения статей на Хабре.
     """
 
-    def __init__(self, agent_client: 'HabrClient'):
+    def __init__(self, agent_client: "HabrClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
         self.http = agent_client.client
 
@@ -36,7 +39,9 @@ class HabrArticles(BaseInstrument):
                 article_refs = data.get("articleRefs", {})
 
                 if not article_ids:
-                    return ToolResult.fail(msg=f"[Habr] По запросу '{query}' ничего не найдено.")
+                    return ToolResult.fail(
+                        msg=f"[Habr] По запросу '{query}' ничего не найдено."
+                    )
 
                 result = [f"Результаты поиска Хабр по запросу '{query}':"]
 
@@ -131,7 +136,9 @@ class HabrArticles(BaseInstrument):
             return ToolResult.fail(msg=f"Ошибка сети при запросе статьи: {e}", error=str(e))
 
     @skill()
-    async def get_hub_feed(self, hub_alias: str, sort_by: str, limit: int = 5) -> ToolResult:
+    async def get_hub_feed(
+        self, hub_alias: str, sort_by: Literal["date", "rating"], limit: int = 5
+    ) -> ToolResult:
         """
         Получает последние статьи из конкретного хаба.
         """

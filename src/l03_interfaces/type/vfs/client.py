@@ -28,6 +28,8 @@ from src.l03_interfaces.type.vfs.instruments.sandbox.executor import SandboxExec
 class VFSClient(BaseClient):
     """Низкоуровневый клиент для VFS и Docker."""
 
+    name = "vfs"  # Имя для маппинга
+
     def __init__(self, sandbox_dir: Path):
         self.agency_state = AgencyState()
 
@@ -62,7 +64,7 @@ class VFSClient(BaseClient):
         """Фоновый сбор статуса контейнеров, чтобы не блокировать get_passive_context."""
         if not self.is_ready:
             return
-            
+
         async def _docker_poller():
             while True:
                 try:
@@ -70,25 +72,50 @@ class VFSClient(BaseClient):
                     containers = await asyncio.to_thread(
                         self.docker_client.containers.list, filters={"name": "aaf_deploy_"}
                     )
-                    self._active_services_cache = [c.name.replace("aaf_deploy_", "") for c in containers]
+                    self._active_services_cache = [
+                        c.name.replace("aaf_deploy_", "") for c in containers
+                    ]
                 except Exception as e:
-                    system_logger.debug(f"[VFS Poller] Ошибка обновления кэша контейнеров: {e}")
-                
-                await asyncio.sleep(30) # Обновляем раз в 30 секунд - этого более чем достаточно
+                    system_logger.debug(
+                        f"[VFS Poller] Ошибка обновления кэша контейнеров: {e}"
+                    )
+
+                await asyncio.sleep(
+                    30
+                )  # Обновляем раз в 30 секунд - этого более чем достаточно
 
         asyncio.create_task(_docker_poller())
 
     def get_passive_context(self) -> dict:
-        """Мгновенно отдает контекст из ОЗУ."""
+        """Мгновенно отдает контекст из ОЗУ + сканирует корень песочницы."""
         from src.l00_utils.managers.config import settings
 
         status = "🟢 ONLINE" if self.is_ready else "🔴 OFFLINE"
         madness = settings.interfaces.vfs.madness_level
 
+        # Получаем список файлов в корне песочницы
+        files = []
+        if self.sandbox_path.exists():
+            try:
+                items = list(self.sandbox_path.iterdir())
+                items.sort(key=lambda x: (not x.is_dir(), x.name.lower()))  # Папки сверху
+                for item in items[:20]:  # Показываем максимум 20, чтобы не спамить
+                    icon = "📁" if item.is_dir() else "📄"
+                    files.append(f"{icon} {item.name}")
+                if len(items) > 7:
+                    files.append(f"... и еще {len(items) - 20} элементов")
+            except Exception:
+                pass
+
+        activity = files if files else ["Песочница пуста."]
+        if self._active_services_cache:
+            activity.insert(
+                0, f"Активные Docker сервисы: {', '.join(self._active_services_cache)}"
+            )
+
         return {
-            "name": "vfs",
-            "status": f"{status} (Madness (file access level): {madness}/3)",
-            "active_services": self._active_services_cache, # <--- Берем из кэша
+            "status": f"{status} (Madness: {madness}/3)",
+            "recent_activity": activity,
         }
 
     async def check_connection(self) -> bool:

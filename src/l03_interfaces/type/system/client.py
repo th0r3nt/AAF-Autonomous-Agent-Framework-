@@ -15,6 +15,8 @@ class SystemClient(BaseClient):
     Обеспечивает доступ к глобальному состоянию для инструментов.
     """
 
+    name = "system"
+
     def __init__(self, global_state: GlobalState):
         self.global_state = global_state
 

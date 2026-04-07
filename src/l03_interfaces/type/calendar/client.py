@@ -19,6 +19,9 @@ from src.l03_interfaces.type.calendar.instruments.scheduler import CalendarSched
 
 
 class CalendarClient(BaseClient):
+
+    name = "calendar"  # Имя для маппинга
+
     def __init__(self, event_bus: EventBus, sql_db: SQLDB):
         self.event_bus = event_bus
 
@@ -34,7 +37,7 @@ class CalendarClient(BaseClient):
 
     async def start_background_polling(self) -> None:
         events = CalendarEvents(event_bus=self.event_bus, client=self)
-        events.start_ticker() # Проверка задач каждую минуту
+        events.start_ticker()  # Проверка задач каждую минуту
 
     async def check_connection(self) -> bool:
         try:

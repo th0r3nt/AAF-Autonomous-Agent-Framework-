@@ -28,6 +28,8 @@ load_dotenv()
 class AiogramClient(BaseClient):
     """Асинхронный клиент для Telegram Bot API на базе Aiogram 3."""
 
+    name = "telegram bot"
+
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
 

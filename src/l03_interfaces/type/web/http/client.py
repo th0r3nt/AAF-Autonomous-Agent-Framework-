@@ -12,6 +12,8 @@ from src.l03_interfaces.type.web.http.instruments.requests import HttpRequests
 class HTTPClient(BaseClient):
     """Асинхронный клиент для общих HTTP-запросов агента."""
 
+    name = "http"  # Имя для маппинга
+
     def __init__(self):
 
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)

@@ -17,6 +17,8 @@ from src.l03_interfaces.type.geo.instruments.weather import GeoWeather
 class GeoClient(BaseClient):
     """Асинхронный клиент для работы с бесплатными гео-сервисами."""
 
+    name = "geo"  # Имя для маппинга
+
     def __init__(self):
         headers = {
             "User-Agent": "AAF-Agent (Autonomous Agent Framework)",

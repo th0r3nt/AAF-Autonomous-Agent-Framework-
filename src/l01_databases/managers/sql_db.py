@@ -1,4 +1,5 @@
 from src.l00_utils.managers.logger import system_logger
+from typing import Literal
 
 # Импорты БД и CRUD
 from src.l01_databases.sql.db import SQLDB
@@ -55,8 +56,8 @@ class SQLManager(BaseInstrument):
         self, task_description: str, term: str = None, context: str = None
     ) -> ToolResult:
         """
-        Добавляет новую долгосрочную задачу в список дел агента.
-        Полезно для планирования шагов, которые нельзя выполнить за один цикл.
+        Добавляет новую долгосрочную задачу в список задач.
+        Полезно для планирования шагов, которые нельзя выполнить за один цикл или присутствует сложная цепочка действий.
         """
         try:
             task = await self.tasks.create_task(
@@ -75,12 +76,14 @@ class SQLManager(BaseInstrument):
 
     @skill()
     async def update_task(
-        self, task_id: int, status: str = None, context: str = None, term: str = None
+        self,
+        task_id: int,
+        status: Literal["pending", "in_progress", "completed", "cancelled", "failed"] = None,
+        context: str = None,
+        term: str = None,
     ) -> ToolResult:
         """
         Обновляет информацию по задаче (прогресс, статус, сроки).
-        status может быть: 'pending', 'in_progress', 'completed', 'cancelled', 'failed'.
-        context используется для записи рабочих заметок и прогресса по задаче.
         """
         kwargs = {}
         if status is not None:
@@ -178,21 +181,14 @@ class SQLManager(BaseInstrument):
         self,
         name: str,
         description: str,
-        category: str = "subject",
-        tier: str = "medium",
+        category: Literal["subject", "object", "artifact", "system"] = "subject",
+        tier: Literal["critical", "high", "medium", "low"] = "medium",
         status: str = "Неизвестно",
         context: str = "[Нет]",
     ) -> ToolResult:
         """
         Создает новую сущность в ментальном состоянии.
-        Полезно для запоминания важных субъектов или объектов.
-
-        :param name: Уникальное имя.
-        :param description: описание сущности.
-        :param category: Категория ('subject', 'object', 'artifact', 'system').
-        :param tier: Уровень важности ('critical', 'high', 'medium', 'low').
-        :param status: Текущий статус.
-        :param context: Контекстные заметки.
+        Полезно для запоминания важных субъектов/объектов.
         """
         try:
             entity = await self.mental_states.create_entity(
@@ -220,7 +216,11 @@ class SQLManager(BaseInstrument):
 
     @skill()
     async def update_entity_status(
-        self, entity_id: int, status: str = None, context: str = None, tier: str = None
+        self,
+        entity_id: int,
+        status: str = None,
+        context: str = None,
+        tier: Literal["critical", "high", "medium", "low"] = None,
     ) -> ToolResult:
         """
         Обновляет текстовые поля сущности (status, context, tier).

@@ -25,6 +25,8 @@ load_dotenv()
 class GithubClient(BaseClient):
     """Асинхронный клиент для работы ИИ-агента с GitHub API."""
 
+    name = "github"  # Имя для маппинга
+
     def __init__(self, event_bus: EventBus):
         self.event_bus = event_bus
         self.token = os.getenv("GITHUB_TOKEN_AGENT")
