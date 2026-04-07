@@ -75,7 +75,7 @@ class HabrClient(BaseClient):
         events.start_polling()
 
     def get_passive_context(self) -> dict:
-        status = "🟢 ONLINE" if self.is_authenticated else "🟡 ONLINE (Read-Only)"
+        status = "🟢 ONLINE" if self.is_authenticated else "🟡 READ-ONLY"
         return {
             "name": "habr",
             "status": status,
@@ -93,22 +93,24 @@ class HabrClient(BaseClient):
                     )
                     return True
                 else:
+                    system_logger.warning("[Habr] Ошибка авторизации. Переход в Read-Only режим.")
                     self.is_authenticated = False
-                    return False
+            
+            # Анонимная проверка (Read-Only)
+            response = await self.client.get(
+                "/articles", params={"hl": "ru", "fl": "ru", "page": 1}
+            )
+            if response.status_code == 200:
+                system_logger.info("[Habr] Анонимное подключение к API успешно.")
+                return True
 
-            else:
-                response = await self.client.get(
-                    "/articles", params={"hl": "ru", "fl": "ru", "page": 1}
-                )
-                if response.status_code == 200:
-                    system_logger.info("[Habr] Анонимное подключение к API успешно.")
-                    return True
-
-                return False
-
+            # Даже если API штормит (например, 503), оставляем навыки доступными
+            return True  
+            
         except httpx.RequestError as e:
-            system_logger.error(f"[Habr] Ошибка сети при проверке подключения: {e}")
-            return False
+            # Даем агенту шанс использовать навыки, даже если при старте был скачок сети
+            system_logger.warning(f"[Habr] Скачок сети при старте: {e}. Навыки будут зарегистрированы.")
+            return True
 
     async def close(self):
         await self.client.aclose()

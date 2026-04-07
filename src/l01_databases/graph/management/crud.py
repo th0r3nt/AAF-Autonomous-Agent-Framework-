@@ -32,8 +32,7 @@ class GraphCRUD:
         """
         query = """
             MERGE (c:Concept {id: $id})
-            ON CREATE SET c.type = $type, c.description = $desc
-            ON MATCH SET c.type = $type, c.description = $desc
+            SET c.type = $type, c.description = $desc
         """
         self.conn.execute(
             query,
@@ -52,13 +51,11 @@ class GraphCRUD:
             system_logger.debug(result)
             return result
 
-        # Имя таблицы (rel_type) подставляем через f-строку, а данные через $
         query = f"""
             MATCH (src:Concept {{id: $source_id}})
             MATCH (tgt:Concept {{id: $target_id}})
             MERGE (src)-[r:{rel_type}]->(tgt)
-            ON CREATE SET r.context = $context
-            ON MATCH SET r.context = $context
+            SET r.context = $context
         """
         try:
             self.conn.execute(

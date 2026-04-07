@@ -115,6 +115,11 @@ class AiogramEvents:
         chat_id = str(message.chat.id) if message else "Unknown"
         message_id = message.message_id if message else None
 
+        try:
+            await callback.answer() 
+        except Exception as e:
+            system_logger.debug(f"[Telegram Bot] Не удалось быстро ответить на callback: {e}")
+
         system_logger.info(
             f"[Telegram Bot] Нажата кнопка '{callback_data}' от @{username} в чате {chat_id}"
         )

@@ -57,8 +57,7 @@ class Orchestrator:
                 prompt = await self.prompt_builder.build_prompt(cycle_type)
                 context = await self.context_builder.build_context(envelope, cycle_type)
 
-                # Запускаем агента в ReAct-цикл.
-                # Оркестратор больше не сохраняет тики сам, он передает CRUD внутрь Loop.
+                # Запускаем агента в ReAct-цикл
                 await self.react_loop.run(
                     cycle_type=cycle_type,
                     system_prompt=prompt,
@@ -66,7 +65,8 @@ class Orchestrator:
                     tools=ACTION_SCHEMA,
                     temperature=temperature,
                     transaction_id=transaction_id,
-                    tick_crud=self.tick_crud,  # Передаем CRUD внутрь
+                    tick_crud=self.tick_crud,
+                    agency_state=self.state.agency_state,  # Передаем стейт сюда
                 )
                 return True
 

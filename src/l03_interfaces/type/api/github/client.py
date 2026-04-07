@@ -64,29 +64,42 @@ class GithubClient(BaseClient):
 
     def get_passive_context(self) -> dict:
         # Указываем LLM, есть ли у нас права на запись
-        status = "🟢 ONLINE" if self.token else "🟡 ONLINE (Read-Only)"
+        status = "🟢 ONLINE" if self.token else "🟡 READ-ONLY"
         return {
             "name": "github",
             "status": status,
-            "recent_activity": list(self.recent_activity)
+            "recent_activity": list(self.recent_activity),
         }
 
     async def check_connection(self) -> bool:
         try:
-            response = await self.client.get("/user")
-            if response.status_code == 200:
-                login = response.json().get("login")
-                system_logger.info(
-                    f"[GitHub] Авторизация успешна. Агент подключен как: @{login}"
-                )
-                return True
-            elif response.status_code == 401:
-                system_logger.error("[GitHub] Ошибка 401: Неверный или просроченный токен.")
-                return False
-            return False
+            if self.token:
+                response = await self.client.get("/user")
+                if response.status_code == 200:
+                    login = response.json().get("login")
+                    system_logger.info(
+                        f"[GitHub] Авторизация успешна. Агент подключен как: @{login}"
+                    )
+                    return True
+                elif response.status_code == 401:
+                    system_logger.error(
+                        "[GitHub] Ошибка 401: Неверный или просроченный токен."
+                    )
+                    return False  # Токен явно битый, лучше вырубить интерфейс и заставить юзера поправить .env
+            else:
+                # В Read-Only режиме просто пингуем публичный эндпоинт, не требующий токена
+                response = await self.client.get("/zen")
+                # 403 может быть лимитом (Rate Limit), но API живо
+                if response.status_code in [200, 403]:
+                    system_logger.info("[GitHub] Анонимное подключение (Read-Only) успешно.")
+                    return True
+
+            return True
         except httpx.RequestError as e:
-            system_logger.error(f"[GitHub] Ошибка сети при проверке подключения: {e}")
-            return False
+            system_logger.warning(
+                f"[GitHub] Скачок сети при старте: {e}. Навыки будут зарегистрированы."
+            )
+            return True
 
     async def close(self):
         await self.client.aclose()

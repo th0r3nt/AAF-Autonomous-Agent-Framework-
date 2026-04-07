@@ -35,7 +35,7 @@ class BaseClient(ABC):
         Возвращает слепок последних событий интерфейса из оперативной памяти (O(1)).
         Не делает сетевых запросов.
         """
-        return {"name": self.name, "status": "online", "recent_activity": []}
+        return {"name": self.name, "status": "🟢 ONLINE", "recent_activity": []}
 
 
 class BaseInstrument:

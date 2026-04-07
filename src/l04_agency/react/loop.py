@@ -11,6 +11,8 @@ from src.l00_utils.managers.config import LOGS_DIR
 
 if TYPE_CHECKING:
     from src.l01_databases.sql.management.agent_ticks import AgentTickCRUD
+    from src.l02_state.system.agency import AgencyState
+
 from src.l04_agency.llm.client import LLMClient
 from src.l04_agency.llm.api_keys.rotator import APIKeyRotator
 from src.l04_agency.skills.router import SkillRouter
@@ -77,7 +79,8 @@ class ReActLoop:
         tools: list,
         temperature: float,
         transaction_id: str,  # Получаем ID транзакции
-        tick_crud: 'AgentTickCRUD'  # Принимаем CRUD базу для работы с тиками
+        tick_crud: "AgentTickCRUD",  # Принимаем CRUD базу для работы с тиками
+        agency_state: "AgencyState" = None,
     ) -> Dict[str, Any]:
         """
         Вызывает ReAct цикл OpenAI-совместимой модели.
@@ -102,11 +105,36 @@ class ReActLoop:
 
         while current_ticks < self.max_react_ticks:
             current_ticks += 1
-            system_logger.debug(
+            system_logger.info(
                 f"[{cycle_type.upper()}] Итерация мышления {current_ticks}/{self.max_react_ticks}."
             )
 
-            # 2. НОВОЕ: Создаем тик в БД ДО запроса к LLM
+            if agency_state and agency_state.interrupt_buffer:
+                interrupts = []
+                # Выгребаем всё, что накопилось, пока LLM думала на прошлом тике
+                while agency_state.interrupt_buffer:
+                    env = agency_state.interrupt_buffer.pop(0)
+                    # Форматируем безопасно
+                    try:
+                        data_str = json.dumps(env.data, ensure_ascii=False, indent=2)
+                    except Exception:
+                        data_str = str(env.data)
+
+                    interrupts.append(
+                        f"Событие: {env.routing_key}\nИсточник: {env.source}\nДанные:\n```json\n{data_str}\n```"
+                    )
+
+                if interrupts:
+                    interrupt_msg = (
+                        "[Interrupt Buffer]\n"
+                        "Во время текущего ReAct цикла появилось входящее событие: \n\n"
+                    ) + "\n---\n".join(interrupts)
+                    
+                    # Закидываем прерывание в контекст как новое сообщение от пользователя
+                    messages.append({"role": "user", "content": interrupt_msg})
+                    system_logger.warning(f"[{cycle_type.upper()}] В контекст LLM внедрено системное прерывание ({len(interrupts)} шт)!")
+
+            # Создаем тик в БД ДО запроса к LLM
             current_tick = await tick_crud.create_tick(
                 trigger_event_id=transaction_id, status="processing"
             )
