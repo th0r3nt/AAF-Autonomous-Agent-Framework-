@@ -186,6 +186,7 @@ class AgentSystem:
             react_loop=self.react_loop,
             prompt_builder=self.prompt_builder,
             context_builder=self.context_builder,
+            agency_state=self.agency_state,
         )
 
         # Heartbeat (пульс агента)

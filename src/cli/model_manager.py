@@ -1,11 +1,15 @@
 import yaml
 from pathlib import Path
 from huggingface_hub import snapshot_download
+from huggingface_hub.utils import disable_progress_bars
 from src.cli import ui
 import warnings
 
 # Скрываем ворчание HF про отсутствие токена и симлинки
 warnings.filterwarnings("ignore", category=UserWarning)
+
+# Отключаем встроенные прогресс-бары HF, чтобы они не ломали UI
+disable_progress_bars()
 
 current_dir = Path(__file__).resolve()
 project_root = current_dir.parents[2]
@@ -35,10 +39,11 @@ def check_and_download_models():
     emb_dir = project_root / "src" / "l00_utils" / "local" / "embeddings" / emb_model.replace("/", "_")
     rerank_dir = project_root / "src" / "l00_utils" / "local" / "cross_encoder" / rerank_model.replace("/", "_")
 
+    ui.info("Проверка доступности локальной Embedding модели.")
     # 1. Embedding Model
     if not _is_model_valid(emb_dir):
         ui.info(f"Локальная Embedding модель не найдена. Инициализация загрузки '{emb_model}'.")
-        ui.console.print("[dim cyan]Идет параллельная загрузка весов. Рекомендуется не закрывать терминал.[/dim cyan]")
+        ui.console.print("Идет параллельная загрузка весов. Рекомендуется не закрывать терминал.\n")
         
         emb_dir.mkdir(parents=True, exist_ok=True)
         
@@ -56,6 +61,7 @@ def check_and_download_models():
     else:
         ui.success(f"Embedding модель '{emb_model}' успешно инициализирована.")
 
+    ui.info("Проверка доступности локальной Reranker модели.")
     # 2. Reranker Model
     if not _is_model_valid(rerank_dir):
         ui.info(f"Локальный Reranker не найден. Инициализация загрузки '{rerank_model}'.")

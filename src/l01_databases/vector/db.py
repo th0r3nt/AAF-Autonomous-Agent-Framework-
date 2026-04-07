@@ -5,7 +5,6 @@ import chromadb.utils.embedding_functions as embedding_functions
 from src.l01_databases.vector.collections import VectorCollection
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings
-from src.l01_databases.managers.memory import SemanticReranker
 
 
 class VectorDB:
@@ -23,9 +22,6 @@ class VectorDB:
             model_name=local_model_path, device="cpu"
         )
         self.client = chromadb.PersistentClient(path=self.chroma_db_path)
-
-        # Реранкер для векторной памяти
-        self.semantic_reranker = SemanticReranker()
 
         # Инициализируем коллекции
         knowledge = VectorCollection(db=self, collection_name="knowledge")

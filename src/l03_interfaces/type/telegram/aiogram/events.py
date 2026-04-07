@@ -7,20 +7,20 @@ from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.event.registry import Events
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.telegram.aiogram.client import AiogramClient
 
-# Создаем роутер (маршрутизатор), который будет обрабатывать все входящие обновления
+# Создаем роутер маршрутизатор, который будет обрабатывать все входящие обновления
 bot_router = Router()
 
 
 class AiogramEvents:
-    def __init__(self, event_bus: EventBus, client: 'AiogramClient'):
+    def __init__(self, event_bus: EventBus, client: "AiogramClient"):
         self.event_bus = event_bus
         self.dp = client.dp
         self.client = client
 
-    @bot_router.message()
     async def handle_bot_message(self, message: Message):
         """
         Ловит абсолютно все сообщения, отправленные боту:
@@ -101,7 +101,6 @@ class AiogramEvents:
         except Exception as e:
             system_logger.error(f"[Telegram Bot] Ошибка маршрутизации сообщения: {e}")
 
-    @bot_router.callback_query()
     async def handle_bot_callback(self, callback: CallbackQuery):
         """
         Ловит нажатия на Inline-кнопки (под сообщениями бота).
@@ -135,13 +134,20 @@ class AiogramEvents:
         except Exception as e:
             system_logger.error(f"[Telegram Bot] Ошибка маршрутизации callback: {e}")
         finally:
-            # ОБЯЗАТЕЛЬНО: Отвечаем телеграму, что мы обработали нажатие
+            # Отвечаем телеграму, что мы обработали нажатие
             # Иначе часики на кнопке у пользователя будут бесконечно крутиться
             await callback.answer()
 
     def register_bot_events(self):
         """
         Функция для подключения роутера к главному диспетчеру.
+        Регистрируем методы объекта напрямую, чтобы не ломался 'self'.
         """
+        # Регистрируем обработчик сообщений
+        bot_router.message.register(self.handle_bot_message)
+
+        # Регистрируем обработчик инлайн-кнопок
+        bot_router.callback_query.register(self.handle_bot_callback)
+
         self.dp.include_router(bot_router)
         system_logger.debug("[Telegram Bot] Обработчики событий успешно зарегистрированы.")

@@ -13,7 +13,7 @@ FILES_TO_CHECK = [
 
 def run_personality_checks():
     """Проверяет наличие файлов личности. Если их нет - копирует из .example.md"""
-    ui.info("Проверка файлов личности агента (Personality).")
+    ui.info("Проверка файлов Personality (agent/prompt/).")
     prompt_dir.mkdir(parents=True, exist_ok=True)
     
     is_new = False
