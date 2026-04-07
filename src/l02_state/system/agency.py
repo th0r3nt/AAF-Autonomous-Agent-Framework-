@@ -22,9 +22,15 @@ class AgencyState:
         # Нужна для работы теневых бэкапов VFS.
         self.current_tick_id: ContextVar[int] = ContextVar("current_tick_id", default=0)
 
+        # Состояние субагентов (фоновых процессов и воркеров)
+        self.subagents = {
+            "daemons": {},
+            "workers": {}
+        }
+
     def get_state(self) -> dict:
         """
-        Возвращает полный слепок состояния всей агентуры.
+        Возвращает полный слепок состояния всех агентов.
         """
         return {"main_agent": self.main_agent, "subagents": self.subagents}
 

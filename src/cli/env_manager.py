@@ -150,6 +150,7 @@ def inject_system_vars(is_dev_mode: bool):
             "postgresql+asyncpg://postgres:postgres@localhost:5432/agent_db",
         )
         ui.info("Сетевые пути настроены для режима [bold]Development (network: localhost)[/bold].")
+
     else:
         # Боевой запуск: всё внутри изолированной сети aaf_net
         set_key(str(env_path), "RABBITMQ_URL", "amqp://guest:guest@aaf_rabbitmq:5672/")
@@ -164,6 +165,6 @@ def inject_system_vars(is_dev_mode: bool):
 def run_all_env_checks(is_dev_mode: bool = False):
     ui.info("Проверка переменных окружения (.env).")
     ensure_env_exists()
+    ui.success("Переменные окружения настроены.")
     check_llm_keys()
     inject_system_vars(is_dev_mode)
-    ui.success("Переменные окружения настроены.")

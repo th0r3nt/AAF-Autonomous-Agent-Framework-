@@ -147,10 +147,11 @@ class VectorGraphMemory(BaseInstrument):
         candidates = []
         for v_col in self.vector_collections:
             try:
-                if v_col.collection.count() == 0:
+                # v_col уже является объектом ChromaDB Collection
+                if v_col.count() == 0:
                     continue
 
-                res = v_col.collection.query(query_texts=[search_text], n_results=top_k)
+                res = v_col.query(query_texts=[search_text], n_results=top_k)
 
                 if res and "documents" in res and res["documents"]:
                     for i in range(len(res["documents"][0])):
@@ -161,12 +162,12 @@ class VectorGraphMemory(BaseInstrument):
                                 "distance": res["distances"][0][
                                     i
                                 ],  # В ChromaDB дистанция (меньше - лучше)
-                                "source": f"vector_{v_col.collection.name}",
+                                "source": f"vector_{v_col.name}", # ИСПРАВЛЕНО
                             }
                         )
             except Exception as e:
                 system_logger.error(
-                    f"[Vector-Graph-RAG] Ошибка векторного поиска в {v_col.collection.name}: {e}"
+                    f"[Vector-Graph-RAG] Ошибка векторного поиска в {v_col.name}: {e}" # ИСПРАВЛЕНО
                 )
 
         return candidates

@@ -9,7 +9,7 @@ class PromptBuilder:
     def __init__(self):
         # Текущая директория (src/l04_agency/main_agent/prompt/)
         current_dir = Path(__file__).resolve().parent
-        project_root = current_dir.parents[4] # Корень проекта
+        project_root = current_dir.parents[3] # Корень проекта
         self.system_dir = current_dir / "system" # Системные промпты неизменяемы
         self.personality_dir = project_root / "agent" / "prompt" # Промпты личности берутся из папки пользователя
 

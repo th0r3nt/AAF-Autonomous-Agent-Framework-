@@ -7,7 +7,6 @@ from aiogram.types import (
 )
 
 from src.l00_utils.managers.logger import system_logger
-from src.l03_interfaces.models import ToolResult
 
 
 class AiogramKeyboards:
@@ -26,7 +25,7 @@ class AiogramKeyboards:
         ]
         """
         if not buttons_data:
-            return ToolResult.ok(msg="Данные для кнопок отсутствуют.", data=None)
+            return None
 
         inline_keyboard = []
         for row in buttons_data:
@@ -70,7 +69,7 @@ class AiogramKeyboards:
         Пример: [["Да", "Нет"], ["Главное меню"]]
         """
         if not buttons_data:
-            return ToolResult.ok(msg="Данные для кнопок отсутствуют.", data=None)
+            return None
 
         reply_keyboard = []
         for row in buttons_data:
@@ -80,7 +79,7 @@ class AiogramKeyboards:
                 reply_keyboard.append(btn_row)
 
         if not reply_keyboard:
-            return ToolResult.ok(msg="Reply-клавиатура пуста.", data=None)
+            return None
 
         return (
             ReplyKeyboardMarkup(

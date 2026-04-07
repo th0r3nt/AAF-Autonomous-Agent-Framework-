@@ -81,14 +81,14 @@ class ReActLoop:
         current_ticks = 0
         aggregated_thoughts = []
         aggregated_actions = []
-        aggregated_results =[]
+        aggregated_results = []
 
         system_logger.info(
             f"[{cycle_type.upper()}] Инициализация ReAct-цикла (LLM: {self.llm_model}; Текущий шаг: {current_ticks}/{self.max_react_ticks})."
         )
 
         # 1. Склеиваем сообщения для LLM
-        messages =[
+        messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_context},
         ]
@@ -120,25 +120,31 @@ class ReActLoop:
                 if response.usage:
                     total_input_tokens = response.usage.prompt_tokens
 
-                    # Динамически считаем вес контекста (включая накопившуюся историю этого ReAct-цикла)
-                    # Берем всё, кроме system_prompt (то есть index 1 и далее)
-                    current_context_len = len(json.dumps(messages[1:], ensure_ascii=False))
+                    safe_messages = []
+                    for m in messages[1:]:
+                        if hasattr(m, "model_dump"):
+                            safe_messages.append(m.model_dump(exclude_none=True))
+                        else:
+                            safe_messages.append(m)
+
+                    current_context_len = len(json.dumps(safe_messages, ensure_ascii=False))
                     total_chars = prompt_len + tools_len + current_context_len
 
                     # Разбиваем реальные токены пропорционально
                     calc_prompt = int(total_input_tokens * (prompt_len / total_chars))
                     calc_tools = int(total_input_tokens * (tools_len / total_chars))
-                    calc_context = total_input_tokens - calc_prompt - calc_tools # Остаток отдаем контексту
+                    calc_context = (
+                        total_input_tokens - calc_prompt - calc_tools
+                    )  # Остаток отдаем контексту
 
                     self.client.token_tracker.add_input_record(
                         cycle_type=cycle_type,
                         prompt_tokens=calc_prompt,
                         context_tokens=calc_context,
-                        tools_tokens=calc_tools
+                        tools_tokens=calc_tools,
                     )
                     self.client.token_tracker.add_output_record(
-                        cycle_type=cycle_type,
-                        tokens=response.usage.completion_tokens
+                        cycle_type=cycle_type, tokens=response.usage.completion_tokens
                     )
 
                 response_message = response.choices[0].message
