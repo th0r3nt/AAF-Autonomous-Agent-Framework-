@@ -10,23 +10,17 @@ class AgencyState:
         self.main_agent = {
             "status": "sleeping",  # sleeping, thinking, executing, consolidating
             "current_cycle": "none",  # event_driven, proactivity, consolidation, none
-            "current_tick_id": 0,  # ID тика в БД (для VFS и бэкапов)
+            "current_transaction_id": "none",  # UUID текущего события из RabbitMQ
         }
-        # Буфер прерываний: список EventEnvelope, которые прилетели, пока мозг думал
         self.interrupt_buffer = []
-
-        # Буфер событий: хранит фоновые события уровня MEDIUM, LOW и BACKGROUND, пока агент спит
         self.sensory_buffer = deque(maxlen=100)
 
-        # Глобальная контекстная переменная для хранения ID текущего тика ReAct-цикла.
-        # Нужна для работы теневых бэкапов VFS.
-        self.current_tick_id: ContextVar[int] = ContextVar("current_tick_id", default=0)
+        # Глобальная контекстная переменная для хранения UUID транзакции ReAct-цикла.
+        self.current_transaction_id: ContextVar[str] = ContextVar(
+            "current_transaction_id", default="none"
+        )
 
-        # Состояние субагентов (фоновых процессов и воркеров)
-        self.subagents = {
-            "daemons": {},
-            "workers": {}
-        }
+        self.subagents = {"daemons": {}, "workers": {}}
 
     def get_state(self) -> dict:
         """
@@ -42,20 +36,16 @@ class AgencyState:
         self,
         status: str = None,
         current_cycle: str = None,
-        current_tick_id: int = None,
+        current_transaction_id: str = None,
     ):
-        """
-        Обновляет статус главного агента.
-        Передаются только те аргументы, которые действительно изменились.
-        """
         if status is not None:
             self.main_agent["status"] = status
 
         if current_cycle is not None:
             self.main_agent["current_cycle"] = current_cycle
 
-        if current_tick_id is not None:
-            self.main_agent["current_tick_id"] = current_tick_id
+        if current_transaction_id is not None:
+            self.main_agent["current_transaction_id"] = current_transaction_id
 
     # ==========================================
     # УПРАВЛЕНИЕ СУБАГЕНТАМИ
@@ -84,4 +74,6 @@ class AgencyState:
         """
         if role in self.subagents and name in self.subagents[role]:
             del self.subagents[role][name]
-            system_logger.debug(f"[AgencyState] Субагент {name} ({role}) удален из активного пула.")
+            system_logger.debug(
+                f"[AgencyState] Субагент {name} ({role}) удален из активного пула."
+            )

@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Sequence, Any, Optional
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy import select
@@ -44,11 +45,12 @@ class AgentTickCRUD:
 
     async def get_tick_by_event_id(self, event_id: str) -> AgentTick | None:
         """
-        Ищет тик по UUID из RabbitMQ.
+        Ищет ПЕРВЫЙ тик по UUID из RabbitMQ. 
         Используется для защиты от дублей (Idempotency check).
         """
         async with self._session_factory() as session:
-            stmt = select(self.table).where(self.table.trigger_event_id == event_id)
+            # Важно добавить .limit(1), так как теперь на 1 событие может быть много тиков
+            stmt = select(self.table).where(self.table.trigger_event_id == event_id).limit(1)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
 
@@ -101,6 +103,23 @@ class AgentTickCRUD:
             await session.delete(tick)
             await session.commit()
             return True
+        
+    async def cleanup_zombie_ticks(self) -> int:
+        """
+        Вызывается при старте сервера. Находит все зависшие тики (статус 'processing') 
+        и переводит их в 'failed', чтобы они не засоряли промпт.
+        """
+        async with self._session_factory() as session:
+            stmt = select(self.table).where(self.table.status == "processing")
+            result = await session.execute(stmt)
+            zombies = result.scalars().all()
+            
+            for z in zombies:
+                z.status = "failed"
+                z.error_message = "System Crash / Zombie Tick (Очищено при рестарте)"
+                
+            await session.commit()
+            return len(zombies)
 
     # ==========================================
     # MARKDOWN
@@ -115,64 +134,54 @@ class AgentTickCRUD:
         if not ticks:
             return "История действий пуста."
 
-        # Разворачиваем, чтобы хронология шла от старого к новому
         ticks = reversed(ticks)
         lines = []
 
         for t in ticks:
-            # Пропускаем "зомби-тики", которые крашнулись и зависли в обработке
             if t.status == "processing":
                 continue
 
             lines.append(f"### Tick #{t.id} [{t.status.upper()}]")
 
             if t.error_message:
-                # Оставляем только суть ошибки, без гигантских трейсбеков
-                err = (
-                    t.error_message
-                    if len(t.error_message) < 300
-                    else t.error_message[:297] + "..."
-                )
+                err = t.error_message if len(t.error_message) < 300 else t.error_message[:297] + "..."
                 lines.append(f"Error: {err}")
 
             if t.thoughts:
-                # Ограничиваем мысли. Агенту не нужно перечитывать свои поэмы
-                thoughts = (
-                    t.thoughts
-                    if len(t.thoughts) < 500
-                    else t.thoughts[:497] + "... [ОБРЕЗАНО]"
-                )
-                lines.append(f"Thoughts: {thoughts}")
+                # Форматируем мысли: убираем переносы строк и лишние пробелы (всё в 1 строку)
+                clean_thoughts = re.sub(r'\s+', ' ', t.thoughts).strip()
+                if len(clean_thoughts) > 500:
+                    clean_thoughts = clean_thoughts[:497] + "... [ОБРЕЗАНО]"
+                lines.append(f"Thoughts: {clean_thoughts} \n---")
 
             if t.called_functions:
                 formatted_calls = []
+
                 for f in t.called_functions:
                     name = f.get("tool_name", "unknown")
                     params = f.get("parameters", {})
-
-                    # Форматируем аргументы: key='short_value'
                     param_parts = []
+
                     for k, v in params.items():
                         val_str = str(v)
-                        if len(val_str) > 1000:
-                            val_str = val_str[:997] + "..."
 
-                        # Оборачиваем строки в кавычки для наглядности
+                        if len(val_str) > 300:
+                            val_str = val_str[:297] + "... [ОБРЕЗАНО]"
+
                         if isinstance(v, str):
                             param_parts.append(f"{k}='{val_str}'")
+
                         else:
                             param_parts.append(f"{k}={val_str}")
 
                     formatted_calls.append(f"{name}({', '.join(param_parts)})")
 
-                lines.append(f"Action: {', '.join(formatted_calls)}")
+                lines.append(f"Action: {', '.join(formatted_calls)} \n---")
 
             if t.function_results:
                 res_str = json.dumps(t.function_results, ensure_ascii=False)
-                if len(res_str) > 800:
-                    res_str = res_str[:797] + "... [ОБРЕЗАНО]"
-                lines.append(f"Result: {res_str}")
-
-            lines.append("---")
+                if len(res_str) > 500:
+                    res_str = res_str[:497] + "... [ОБРЕЗАНО]"
+                lines.append(f"Result: {res_str} \n---")
 
         return "\n".join(lines).strip()

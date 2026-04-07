@@ -21,7 +21,7 @@ class Orchestrator:
         react_loop: ReActLoop,
         prompt_builder: PromptBuilder,
         context_builder: ContextBuilder,
-        agency_state: AgencyState
+        agency_state: AgencyState,
     ):
         self.state = global_state
         self.tick_crud = tick_crud
@@ -40,52 +40,41 @@ class Orchestrator:
     async def wake_up_neo(self, envelope: EventEnvelope, cycle_type: str) -> bool:
         """
         Wake Up, Agent.
-        Запускает цикл мышления агента в зависимости от типа цикла.
-        Event-Driven, Proactivity или Consolidation.
+        Запускает цикл мышления агента.
         """
         temperature = self.state.settings_state.get_state()["llm"]["temperature"]
 
         async with self.mind_lock:
-            self.state.agency_state.update_main_agent("thinking", cycle_type)
+            transaction_id = envelope.event_id
+            self.state.agency_state.update_main_agent("thinking", cycle_type, transaction_id)
+            self.agency_state.current_transaction_id.set(transaction_id)
 
-            tick = await self.tick_crud.create_tick(trigger_event_id=envelope.event_id)
-            self.agency_state.current_tick_id.set(tick.id)
             system_logger.info(
-                f"[Orchestrator] Запуск цикла {cycle_type.upper()}. Тик #{tick.id}."
+                f"[Orchestrator] Запуск цикла {cycle_type.upper()}. Транзакция: {transaction_id}"
             )
 
             try:
                 prompt = await self.prompt_builder.build_prompt(cycle_type)
                 context = await self.context_builder.build_context(envelope, cycle_type)
 
-                # Запускаем агента в ReAct-цикл (передаем схему вызова из файла schema.py)
-                result = await self.react_loop.run(
+                # Запускаем агента в ReAct-цикл.
+                # Оркестратор больше не сохраняет тики сам, он передает CRUD внутрь Loop.
+                await self.react_loop.run(
                     cycle_type=cycle_type,
                     system_prompt=prompt,
                     user_context=context,
                     tools=ACTION_SCHEMA,
                     temperature=temperature,
-                    tick_id=tick.id,
-                )
-
-                # Сохраняем мысли и действия в БД для краткосрочной памяти агента
-                await self.tick_crud.update_tick(
-                    tick.id, 
-                    status="success",
-                    thoughts=result.get("thoughts", ""),
-                    called_functions=result.get("called_functions", []),
-                    function_results=result.get("function_results", []),
+                    transaction_id=transaction_id,
+                    tick_crud=self.tick_crud,  # Передаем CRUD внутрь
                 )
                 return True
 
             except Exception as e:
                 system_logger.error(f"[Orchestrator] Ошибка цикла: {e}")
-                await self.tick_crud.update_tick(
-                    tick.id, status="failed", error_message=str(e)
-                )
                 raise e
 
             finally:
                 self.state.agency_state.update_main_agent(
-                    status="sleeping", current_cycle="none"
+                    status="sleeping", current_cycle="none", current_transaction_id="none"
                 )

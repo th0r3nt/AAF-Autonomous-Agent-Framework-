@@ -2,12 +2,15 @@ import json
 import datetime
 from typing import Dict, Any
 import openai
-import asyncio 
+import asyncio
+from typing import TYPE_CHECKING
 
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings
 from src.l00_utils.managers.config import LOGS_DIR
 
+if TYPE_CHECKING:
+    from src.l01_databases.sql.management.agent_ticks import AgentTickCRUD
 from src.l04_agency.llm.client import LLMClient
 from src.l04_agency.llm.api_keys.rotator import APIKeyRotator
 from src.l04_agency.skills.router import SkillRouter
@@ -73,18 +76,16 @@ class ReActLoop:
         user_context: str,
         tools: list,
         temperature: float,
-        tick_id: int,
+        transaction_id: str,  # Получаем ID транзакции
+        tick_crud: 'AgentTickCRUD'  # Принимаем CRUD базу для работы с тиками
     ) -> Dict[str, Any]:
         """
         Вызывает ReAct цикл OpenAI-совместимой модели.
         """
         current_ticks = 0
-        aggregated_thoughts = []
-        aggregated_actions = []
-        aggregated_results = []
 
         system_logger.info(
-            f"[{cycle_type.upper()}] Инициализация ReAct-цикла (LLM: {self.llm_model}; Текущий шаг: {current_ticks}/{self.max_react_ticks})."
+            f"[{cycle_type.upper()}] Инициализация ReAct-цикла (LLM: {self.llm_model}; Шаг: {current_ticks} Макс. шагов: {self.max_react_ticks})."
         )
 
         # 1. Склеиваем сообщения для LLM
@@ -105,6 +106,11 @@ class ReActLoop:
                 f"[{cycle_type.upper()}] Итерация мышления {current_ticks}/{self.max_react_ticks}."
             )
 
+            # 2. НОВОЕ: Создаем тик в БД ДО запроса к LLM
+            current_tick = await tick_crud.create_tick(
+                trigger_event_id=transaction_id, status="processing"
+            )
+
             try:
                 # Получаем живую сессию (APIKeyRotator внутри сам подставит ключ)
                 session = await self.client.get_session()
@@ -116,19 +122,23 @@ class ReActLoop:
                             model=self.llm_model,
                             messages=messages,
                             tools=tools,
-                            tool_choice={"type": "function", "function": {"name": "execute_skill"}},
+                            tool_choice={
+                                "type": "function",
+                                "function": {"name": "execute_skill"},
+                            },
                             temperature=temperature,
                         ),
-                        timeout=60.0  # <--- Ждем ровно минуту
+                        timeout=60.0,  # <--- Ждем ровно минуту
                     )
                 except asyncio.TimeoutError:
                     system_logger.warning(
                         f"[{cycle_type.upper()}] LLM не ответила за 60 секунд. Попытка ретрая с новым ключом."
                     )
-                    # Чтобы не тратить тики на технические лаги, откатываем счетчик
+                    # Фиксируем ошибку в БД, чтобы тик не стал "зомби"
+                    await tick_crud.update_tick(
+                        current_tick.id, status="failed", error_message="LLM API Timeout (60s)"
+                    )
                     current_ticks -= 1
-                    # Можно даже пометить ключ как "медленный", если захотим, 
-                    # но пока просто идем на следующий круг цикла (возьмется новый ключ)
                     continue
 
                 # Трекинг токенов
@@ -148,9 +158,7 @@ class ReActLoop:
                     # Разбиваем реальные токены пропорционально
                     calc_prompt = int(total_input_tokens * (prompt_len / total_chars))
                     calc_tools = int(total_input_tokens * (tools_len / total_chars))
-                    calc_context = (
-                        total_input_tokens - calc_prompt - calc_tools
-                    )  # Остаток отдаем контексту
+                    calc_context = total_input_tokens - calc_prompt - calc_tools
 
                     self.client.token_tracker.add_input_record(
                         cycle_type=cycle_type,
@@ -170,6 +178,11 @@ class ReActLoop:
                     system_logger.info(
                         f"[{cycle_type.upper()}] Модель {self.llm_model} не вызвала ни одного инструмента. Принудительная остановка."
                     )
+                    await tick_crud.update_tick(
+                        current_tick.id,
+                        status="failed",
+                        error_message="No tool calls generated.",
+                    )
                     break
 
                 tool_call = response_message.tool_calls[0]
@@ -182,7 +195,6 @@ class ReActLoop:
                     system_logger.error(
                         f"[{cycle_type.upper()}] LLM {self.llm_model} сгенерировала невалидный JSON. Запрошено исправление."
                     )
-                    # Возвращаем ошибку модели, чтобы она сама себя поправила на следующей итерации
                     messages.append(
                         {
                             "role": "tool",
@@ -196,6 +208,11 @@ class ReActLoop:
                             ),
                         }
                     )
+                    await tick_crud.update_tick(
+                        current_tick.id,
+                        status="failed",
+                        error_message=f"JSON Decode Error: {e}",
+                    )
                     continue
 
                 thoughts = args.get("thoughts", "")
@@ -203,7 +220,6 @@ class ReActLoop:
 
                 # Логируем мысли агента
                 if thoughts:
-                    aggregated_thoughts.append(thoughts)
                     system_logger.info(f"[Thoughts] {thoughts}")
 
                 # Проверка на выход из цикла
@@ -211,16 +227,17 @@ class ReActLoop:
                     system_logger.info(
                         f"[{cycle_type.upper()}] Агент передал пустой массив действий. ReAct-цикл завершен."
                     )
+                    await tick_crud.update_tick(
+                        current_tick.id, status="success", thoughts=thoughts
+                    )
                     break
 
                 # Исполнение инструментов
-                aggregated_actions.extend(actions)
                 system_logger.debug(
                     f"[{cycle_type.upper()}] Роутинг {len(actions)} действий на исполнение."
                 )
 
                 results = await self.skills_router.execute_parallel(actions)
-                aggregated_results.extend(results)
 
                 # Инжектим результаты обратно в контекст для следующего тика
                 messages.append(
@@ -232,21 +249,35 @@ class ReActLoop:
                     }
                 )
 
+                # 3. НОВОЕ: Обновляем тик в БД как УСПЕШНЫЙ (записываем мысли и результаты)
+                await tick_crud.update_tick(
+                    current_tick.id,
+                    status="success",
+                    thoughts=thoughts,
+                    called_functions=actions,
+                    function_results=results,
+                )
+
+                # Опционально: обновляем дамп контекста с новыми сообщениями
+                self._dump_context_to_file(cycle_type, messages)
+
             except openai.RateLimitError:
-                # Перехватываем 429 ошибку
                 system_logger.warning(
                     f"[{cycle_type.upper()}] Ключ улетел в Rate Limit (429). Ротация ключа и повторная попытка."
                 )
-                # Блокируем сгоревший ключ
+                await tick_crud.update_tick(
+                    current_tick.id, status="failed", error_message="Rate Limit (429)"
+                )
                 await self.key_rotator.mark_key_exhausted(session.api_key)
-
-                # Откатываем счетчик тиков на шаг назад, чтобы не тратить лимит итераций на технические сбои,
-                # и делаем continue, чтобы цикл while сразу пошел на следующий круг с новым ключом
                 current_ticks -= 1
                 continue
 
             except Exception as e:
                 system_logger.error(f"[ReAct Loop] Ошибка при вызове {self.llm_model}: {e}")
+                # Спасаем тик от превращения в зомби при любом краше кода
+                await tick_crud.update_tick(
+                    current_tick.id, status="failed", error_message=str(e)
+                )
                 raise e
 
         if current_ticks >= self.max_react_ticks:
@@ -254,9 +285,6 @@ class ReActLoop:
                 f"[{cycle_type.upper()}] Превышен лимит итераций ({self.max_react_ticks}). Цикл принудительно прерван."
             )
 
-        return {
-            "success": True,
-            "thoughts": "\n\n".join(aggregated_thoughts),
-            "called_functions": aggregated_actions,
-            "function_results": aggregated_results,
-        }
+        # Оркестратор теперь просто получает сигнал, что всё завершилось нормально,
+        # так как БД уже обновлена внутри цикла.
+        return {"success": True}

@@ -4,6 +4,7 @@ from typing import List
 # l00_utils
 from src.l00_utils.event.broker.consumer import EventConsumer
 from src.l00_utils.managers.event_bus import EventBus
+from src.l00_utils.event.registry import Events
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import (
     GRAPH_DB_PATH,
@@ -225,12 +226,18 @@ class AgentSystem:
     async def startup(self) -> None:
         await self.setup_utils()
         await self.setup_databases()
+
+        zombies_count = await self.sql_manager.ticks.cleanup_zombie_ticks()
+        if zombies_count > 0:
+            system_logger.warning(f"[System] Очищено тиков после прошлого падения: {zombies_count}")
+
         await self.setup_state()
         await self.setup_interfaces()
         await self.setup_agency()
 
         system_logger.info("[System] Ожидание инициализации подключения к серверам.")
-        await asyncio.sleep(10)
+        await asyncio.sleep(6)
+        await self.event_bus.publish(Events.SYSTEM_CORE_START)
 
     async def stop(self):
         system_logger.info("[System] Начат процесс остановки AAF.")
