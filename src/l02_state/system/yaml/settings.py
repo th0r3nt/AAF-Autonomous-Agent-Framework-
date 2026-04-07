@@ -44,7 +44,7 @@ class SettingsState:
             system_logger.error(f"[SettingsState] Ошибка: Параметр '{keys[-1]}' не найден.")
             return False
 
-        # Устанавливаем новое значение в RAM
+        # Устанавливаем новое значение. Pydantic автоматически проверит типы!
         try:
             setattr(current_obj, keys[-1], value)
         except Exception as e:
@@ -54,25 +54,15 @@ class SettingsState:
             return False
 
         # ====================================================
-        # Обновление в settings.yaml
+        # Дамп в settings.yaml
         # ====================================================
 
         try:
-            # Читаем текущий файл, чтобы не затереть комментарии или форматирование
-            with open(self.config_path, "r", encoding="utf-8") as f:
-                yaml_data = yaml.safe_load(f) or {}
+            # Выгружаем чистый словарь
+            # by_alias=True возвращает ключи из YAML (например, max_react_steps вместо max_react_ticks)
+            yaml_data = settings.model_dump(exclude={"interfaces"}, by_alias=True)
 
-            # Идем вглубь словаря
-            current_dict = yaml_data
-            for key in keys[:-1]:
-                if key not in current_dict:
-                    current_dict[key] = {}
-                current_dict = current_dict[key]
-
-            # Обновляем значение
-            current_dict[keys[-1]] = value
-
-            # Перезаписываем файл
+            # Перезаписываем файл целиком
             with open(self.config_path, "w", encoding="utf-8") as f:
                 yaml.dump(
                     yaml_data,
@@ -89,6 +79,6 @@ class SettingsState:
 
         except Exception as e:
             system_logger.error(
-                f"[SettingsState] Ошибка при записи в файл {self.config_path}: {e}"
+                f"[SettingsState] Ошибка при дампе в файл {self.config_path}: {e}"
             )
             return False

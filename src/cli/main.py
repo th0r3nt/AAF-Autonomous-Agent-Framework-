@@ -1,3 +1,4 @@
+from src.cli import model_manager
 from src.cli.wizard import system, network, filesystem
 from src.cli import settings_manager, env_manager, interfaces_manager, docker_manager, prompt_manager
 
@@ -19,16 +20,14 @@ def run_startup_sequence(dev_mode: bool = False):
     prompt_manager.run_personality_checks()
     env_manager.run_all_env_checks(is_dev_mode=dev_mode)
 
+    if not dev_mode:
+        model_manager.check_and_download_models()
+
     # Docker Orchestration
     success = docker_manager.compose_up(dev_mode=dev_mode)
-    
     # Если Docker не смог собрать или поднять контейнеры - возвращаемся в меню
     if not success:
         return 
-
-    # Мониторинг (только если не dev-режим и если compose поднялся успешно)
-    if not dev_mode:
-        docker_manager.monitor_health()
 
 def run_teardown_sequence(remove_volumes: bool = False):
     """Останавливает проект."""

@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import List, Dict, Any
 from pathlib import Path
 
-from huggingface_hub import snapshot_download
 from sentence_transformers import CrossEncoder
 
 from src.l03_interfaces.type.base import BaseInstrument
@@ -23,9 +22,7 @@ class SemanticReranker:
     """Отвечает за загрузку реранкер модели и семантическую оценку текстов."""
 
     def __init__(self):
-        # Получаем название модели из настроек
         self.model_name = settings.memory.reranker_model
-
         self.base_path = self._get_base_path()
         self.model = self._load_model()
 
@@ -38,21 +35,9 @@ class SemanticReranker:
 
     def _load_model(self) -> CrossEncoder:
         try:
-            system_logger.info(f"[Reranker] Инициализация модели: {self.model_name}")
             folder_name = self.model_name.replace("/", "_")
             local_path = os.path.join(self.base_path, folder_name)
-
-            if not os.path.exists(local_path) or not os.listdir(local_path):
-                system_logger.info(
-                    f"[Reranker] Модель не найдена. Скачиваем в {local_path}..."
-                )
-                os.makedirs(local_path, exist_ok=True)
-                snapshot_download(
-                    repo_id=self.model_name,
-                    local_dir=local_path,
-                    local_dir_use_symlinks=False,
-                )
-                system_logger.info("[Reranker] Модель успешно скачана.")
+            system_logger.info(f"[Reranker] Инициализация локальной модели: {local_path}")
 
             return CrossEncoder(local_path, max_length=512)
         except Exception as e:

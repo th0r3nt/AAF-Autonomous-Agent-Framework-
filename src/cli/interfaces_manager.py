@@ -125,7 +125,8 @@ def run_interactive_wizard() -> bool:
         selected = questionary.select(
             "Навигация: ↑/↓ | Выбор: Enter\n",
             choices=choices,
-            use_indicator=True
+            use_indicator=True,
+            instruction="" # Убивает чертову надпись "(Use arrow keys)"
         ).ask()
 
         # 3. Обработка выбора
@@ -150,18 +151,27 @@ def run_interactive_wizard() -> bool:
             
             if new_state: # Если включили, спрашиваем уровень доступа
                 ui.clear_screen()
-                ui.console.print("\n[bold cyan]НАСТРОЙКА VFS[/bold cyan]")
-                ui.console.print(
-                    "\n[dim]Уровни доступа VFS:\n"
-                    "0 - Строго в sandbox/ (Безопасно)\n"
-                    "1 - Чтение всего проекта, запись в sandbox/\n"
-                    "2 - Чтение/Запись всего проекта (Агент может переписать свой код)\n"
-                    "3 - God Mode (Выполнение кода на хосте ОС)[/dim]"
+                ui.console.print("\n[bold cyan]НАСТРОЙКА VFS (ФАЙЛОВАЯ СИСТЕМА)[/bold cyan]\n")
+                
+                # Формируем объекты Choice, где есть визуальное Имя и системное Значение (value)
+                vfs_choices = [
+                    questionary.Choice("0 - Строго в sandbox/ (безопасно)", value="0"),
+                    questionary.Choice("1 - Чтение всего проекта, запись в sandbox/", value="1"),
+                    questionary.Choice("2 - Чтение/Запись всего проекта (агент может переписать свой код)", value="2"),
+                    questionary.Choice("3 - God Mode (выполнение кода на хосте ОС)", value="3"),
+                ]
+                
+                # Ищем заголовок для дефолтного курсора (сохраняем предыдущий выбор)
+                default_title = next(
+                    (c.title for c in vfs_choices if c.value == str(vfs_level)), 
+                    vfs_choices[0].title
                 )
+
                 level_str = questionary.select(
                     "Выберите уровень безумия (madness_level):",
-                    choices=["0", "1", "2", "3"],
-                    default=str(vfs_level)
+                    choices=vfs_choices,
+                    default=default_title,
+                    instruction=""  # Убиваем надпись "(Use arrow keys)"
                 ).ask()
                 
                 if level_str is not None:

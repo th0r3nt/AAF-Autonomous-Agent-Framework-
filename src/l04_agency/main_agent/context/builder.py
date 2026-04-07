@@ -49,6 +49,13 @@ class ContextBuilder:
         system_logger.debug(f"[ContextBuilder] Начат сбор данных для цикла: {cycle_type}")
         search_query = envelope.data.get("text", envelope.source)
 
+        # Вытаскиваем нужную глубину контекста для текущего цикла из настроек
+        settings_dict = self.state.settings_state.get_state()
+        try:
+            ticks_limit = settings_dict["llm"]["context_depth"][cycle_type]["number_of_ticks"]
+        except KeyError:
+            ticks_limit = 30  # Фолбэк на случай, если что-то пойдет не так
+
         # ==========================================================================
         # Параллельные запросы к базам данных
         # ==========================================================================
@@ -57,7 +64,7 @@ class ContextBuilder:
             self.mental_state.get_entities_markdown(10),        # [1] mental_state
             self.event.get_pending_events_markdown(limit=10),   # [2] calendar
             self.task.get_tasks_markdown("pending", limit=5),   # [3] tasks
-            self.tick.get_ticks_markdown(limit=5),              # [4] recent_ticks (5 хватит за глаза)
+            self.tick.get_ticks_markdown(limit=ticks_limit),    # [4] recent_ticks
             self.memory.recall_memory(search_query),            # [5] vector_graph
         ]
         results = await asyncio.gather(*fetch_tasks)

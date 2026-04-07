@@ -21,6 +21,7 @@ agent/data/chroma_db/
 agent/data/kuzu_db/
 agent/data/telegram_sessions/
 agent/data/shadow_backups/
+agent/data/
 agent_db.sqlite
 *.db
 *.sqlite

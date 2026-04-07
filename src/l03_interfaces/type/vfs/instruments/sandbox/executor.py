@@ -134,16 +134,27 @@ class SandboxExecutor(BaseInstrument):
                     error="Docker Unavailable",
                 )
 
-            # Docker жестко пробрасывает только папку sandbox. Он не сможет выполнить скрипт из src/
             if not abs_path.is_relative_to(self.client.sandbox_path):
                 return ToolResult.fail(
                     msg="Ошибка: Docker-песочница может запускать только скрипты из папки sandbox/. Для запуска системных скриптов необходимо использовать run_on_host=True.",
                     error="Path Restriction",
                 )
 
-            result = await self.containers.run_ephemeral(
-                image="python:3.11-alpine", script_abs_path=abs_path, timeout=timeout
-            )
+            try:
+                # Оборачиваем вызов к Docker в асинхронный таймаут
+                # Даем Docker'у фору в 5 секунд на запуск команды и отработку внутреннего timeout внутри Alpine
+                result = await asyncio.wait_for(
+                    self.containers.run_ephemeral(
+                        image="python:3.11-alpine", script_abs_path=abs_path, timeout=timeout
+                    ),
+                    timeout=timeout + 5.0
+                )
+            except asyncio.TimeoutError:
+                system_logger.error(f"[Executor] Docker API завис при попытке выполнить {filepath}")
+                return ToolResult.fail(
+                    msg=f"Критическая ошибка: Демон Docker не ответил в течение {timeout + 5} сек. Процесс прерван.",
+                    error="DockerAPITimeout"
+                )
 
         # 4. Обработка вывода
         output = result.get("output", "").strip()

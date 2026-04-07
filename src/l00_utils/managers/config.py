@@ -18,7 +18,8 @@ class IdentityConfig(BaseModel):
 
 
 class ContextDepthTickConfig(BaseModel):
-    number_of_ticks: int = Field(default=30)
+    # Добавили alias="ticks", чтобы Pydantic понял, что в YAML это называется ticks
+    number_of_ticks: int = Field(alias="ticks", default=30)
 
 
 class ContextDepthConfig(BaseModel):

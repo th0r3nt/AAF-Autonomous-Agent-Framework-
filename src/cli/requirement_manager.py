@@ -4,7 +4,15 @@ import importlib
 import importlib.metadata
 
 # Теперь мы ищем именно имена пакетов (как они записаны в pip), а не имена модулей
-CLI_DEPENDENCIES = ["typer", "rich", "python-dotenv", "pyyaml", "docker", "questionary"]
+CLI_DEPENDENCIES = [
+    "typer",
+    "rich",
+    "python-dotenv",
+    "pyyaml",
+    "docker",
+    "questionary",
+    "huggingface-hub",
+]
 
 
 def check_and_install_dependencies():

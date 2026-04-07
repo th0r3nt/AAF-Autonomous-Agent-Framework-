@@ -87,7 +87,7 @@ class AgentSystem:
         self.graph_db = GraphDB(self.event_bus, db_path=GRAPH_DB_PATH)
         self.sql_db = SQLDB(self.event_bus, db_url=SQL_DB_URL)
         self.vector_db = VectorDB(
-            chroma_db_path=CHROMA_DB_DIR, embedding_model_path=EMBEDDINGS_BASE_DIR
+            chroma_db_path=CHROMA_DB_DIR, embeddings_base_dir=EMBEDDINGS_BASE_DIR
         )
 
         # Инициализируем

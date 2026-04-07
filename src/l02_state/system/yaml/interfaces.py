@@ -64,26 +64,20 @@ class InterfacesState:
             return False
 
         try:
-            # Обновляем локальный словарь для LLM
+            # Обновляем локальный плоский словарь для контекста LLM
             self.interfaces[interface]["enabled"] = enabled
 
-            # Достаем сохраненный путь (например, ["api", "github"])
-            path_keys = self._yaml_paths[interface]
-
             # Обновляем Pydantic-модель в оперативной памяти
+            path_keys = self._yaml_paths[interface]
             current_obj = settings.interfaces
+            
             for key in path_keys:
                 current_obj = getattr(current_obj, key)
             current_obj.enabled = enabled
 
-            # Обновляем физический YAML файл
-            with open(self.interfaces_path, "r", encoding="utf-8") as f:
-                yaml_data = yaml.safe_load(f) or {}
-
-            current_dict = yaml_data
-            for key in path_keys:
-                current_dict = current_dict[key]
-            current_dict["enabled"] = enabled
+            # Дамп в interfaces.yaml
+            # Берем только секцию интерфейсов, уважаем алиасы
+            yaml_data = settings.interfaces.model_dump(by_alias=True)
 
             with open(self.interfaces_path, "w", encoding="utf-8") as f:
                 yaml.dump(
