@@ -109,6 +109,7 @@ class AgentTickCRUD:
     async def get_ticks_markdown(self, limit: int = 10, offset: int = 0) -> str:
         """
         Возвращает историю тиков агента в текстовом Markdown формате.
+        Жестко сжимает данные, чтобы не переполнять контекстное окно LLM.
         """
         ticks = await self.get_all_ticks(limit, offset)
         if not ticks:
@@ -119,22 +120,59 @@ class AgentTickCRUD:
         lines = []
 
         for t in ticks:
+            # Пропускаем "зомби-тики", которые крашнулись и зависли в обработке
+            if t.status == "processing":
+                continue
+
             lines.append(f"### Tick #{t.id} [{t.status.upper()}]")
+
             if t.error_message:
-                lines.append(f"Error: {t.error_message}")
+                # Оставляем только суть ошибки, без гигантских трейсбеков
+                err = (
+                    t.error_message
+                    if len(t.error_message) < 300
+                    else t.error_message[:297] + "..."
+                )
+                lines.append(f"Error: {err}")
+
             if t.thoughts:
-                lines.append(f"Thoughts: {t.thoughts}")
+                # Ограничиваем мысли. Агенту не нужно перечитывать свои поэмы
+                thoughts = (
+                    t.thoughts
+                    if len(t.thoughts) < 500
+                    else t.thoughts[:497] + "... [ОБРЕЗАНО]"
+                )
+                lines.append(f"Thoughts: {thoughts}")
+
             if t.called_functions:
-                # Конвертируем JSON действий в компактную строку
-                calls_str = ", ".join([f"{f.get('tool_name')}({f.get('parameters', '')})" for f in t.called_functions])
-                lines.append(f"Action: {calls_str}")
+                formatted_calls = []
+                for f in t.called_functions:
+                    name = f.get("tool_name", "unknown")
+                    params = f.get("parameters", {})
+
+                    # Форматируем аргументы: key='short_value'
+                    param_parts = []
+                    for k, v in params.items():
+                        val_str = str(v)
+                        if len(val_str) > 1000:
+                            val_str = val_str[:997] + "..."
+
+                        # Оборачиваем строки в кавычки для наглядности
+                        if isinstance(v, str):
+                            param_parts.append(f"{k}='{val_str}'")
+                        else:
+                            param_parts.append(f"{k}={val_str}")
+
+                    formatted_calls.append(f"{name}({', '.join(param_parts)})")
+
+                lines.append(f"Action: {', '.join(formatted_calls)}")
+
             if t.function_results:
-                # Ограничиваем длину вывода результатов, чтобы не взорвать контекст
                 res_str = json.dumps(t.function_results, ensure_ascii=False)
-                if len(res_str) > 500:
-                    res_str = res_str[:497] + "..."
+                if len(res_str) > 800:
+                    res_str = res_str[:797] + "... [ОБРЕЗАНО]"
                 lines.append(f"Result: {res_str}")
-            
+
             lines.append("---")
 
-        return "\n".join(lines)
+        return "\n".join(lines).strip()

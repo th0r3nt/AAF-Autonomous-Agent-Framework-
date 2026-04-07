@@ -5,6 +5,7 @@ import asyncio
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.vfs.client import VFSClient
 
@@ -25,7 +26,7 @@ class FilesCRUD(BaseInstrument):
 
     def __init__(
         self,
-        client: 'VFSClient',
+        client: "VFSClient",
         access_controller: VFSAccessController,
         backup_manager: ShadowBackupManager,
     ):
@@ -86,7 +87,9 @@ class FilesCRUD(BaseInstrument):
             system_logger.error(f"[VFS] Ошибка чтения файла {filepath}: {e}")
             return ToolResult.fail(msg=f"Ошибка при чтении файла: {e}", error=str(e))
 
-    def _sync_write_file(self, filepath: str, content: str, append: bool = False) -> ToolResult:
+    def _sync_write_file(
+        self, filepath: str, content: str, append: bool = False
+    ) -> ToolResult:
         """
         Синхронная логика записи (создает или перезаписывает).
         """
@@ -94,7 +97,7 @@ class FilesCRUD(BaseInstrument):
 
         if not abs_path:
             return ToolResult.fail(
-                msg=f"Ошибка безопасности (Madness Level {settings.system.flags.madness_level}): Запись в '{filepath}' запрещена.",
+                msg=f"Ошибка безопасности (Madness Level {settings.interfaces.vfs.madness_level}): Запись в '{filepath}' запрещена.",
                 error="Access Denied",
             )
 
@@ -122,7 +125,7 @@ class FilesCRUD(BaseInstrument):
                 return ToolResult.fail(msg=error_msg, error="AST Syntax Error")
 
             # Проверка на системные деструктивные вызовы (Только для God Mode)
-            if settings.system.flags.madness_level == 3:
+            if settings.interfaces.vfs.madness_level == 3:
                 is_safe, sec_msg = ASTValidator.censor_system_calls(full_content)
                 if not is_safe:
                     return ToolResult.fail(msg=sec_msg, error="AST Security Violation")
@@ -198,11 +201,11 @@ class FilesCRUD(BaseInstrument):
             # Точка отсчета меняется в зависимости от уровня безумия
             abs_path = (
                 self.client.sandbox_path
-                if settings.system.flags.madness_level == 0
+                if settings.interfaces.vfs.madness_level == 0
                 else self.project_root
             )
             display_path = (
-                "sandbox/" if settings.system.flags.madness_level == 0 else "project_root/"
+                "sandbox/" if settings.interfaces.vfs.madness_level == 0 else "project_root/"
             )
         else:
             abs_path = self.access_controller.resolve_path(dirpath, mode="read")

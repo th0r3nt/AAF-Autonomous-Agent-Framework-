@@ -173,7 +173,7 @@ class ContextBuilder:
 
             if not client:
                 # Включен в конфиге, но класс не инициализировался (ошибка или нет ключей)
-                lines.append(f"#### [{d_name}] 🔴 OFFLINE / NO KEYS\n")
+                lines.append(f"#### [{d_name}] 🔴 OFFLINE\n")
                 continue
 
             ctx = client.get_passive_context()

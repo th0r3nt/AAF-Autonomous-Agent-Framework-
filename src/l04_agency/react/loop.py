@@ -2,6 +2,7 @@ import json
 import datetime
 from typing import Dict, Any
 import openai
+import asyncio 
 
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.config import settings
@@ -109,13 +110,26 @@ class ReActLoop:
                 session = await self.client.get_session()
 
                 # Вызов LLM
-                response = await session.chat.completions.create(
-                    model=self.llm_model,
-                    messages=messages,
-                    tools=tools,
-                    tool_choice={"type": "function", "function": {"name": "execute_skill"}},
-                    temperature=temperature,
-                )
+                try:
+                    response = await asyncio.wait_for(
+                        session.chat.completions.create(
+                            model=self.llm_model,
+                            messages=messages,
+                            tools=tools,
+                            tool_choice={"type": "function", "function": {"name": "execute_skill"}},
+                            temperature=temperature,
+                        ),
+                        timeout=60.0  # <--- Ждем ровно минуту
+                    )
+                except asyncio.TimeoutError:
+                    system_logger.warning(
+                        f"[{cycle_type.upper()}] LLM не ответила за 60 секунд. Попытка ретрая с новым ключом."
+                    )
+                    # Чтобы не тратить тики на технические лаги, откатываем счетчик
+                    current_ticks -= 1
+                    # Можно даже пометить ключ как "медленный", если захотим, 
+                    # но пока просто идем на следующий круг цикла (возьмется новый ключ)
+                    continue
 
                 # Трекинг токенов
                 if response.usage:

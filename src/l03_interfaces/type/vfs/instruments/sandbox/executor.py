@@ -101,8 +101,8 @@ class SandboxExecutor(BaseInstrument):
 
         if not abs_path:
             return ToolResult.fail(
-                msg=f"Ошибка безопасности (Madness Level {settings.system.flags.madness_level}): Доступ к '{filepath}' запрещен.",
-                error="Security Error",
+                msg=f"Ошибка безопасности (Madness Level {settings.interfaces.vfs.madness_level}): Доступ к '{filepath}' запрещен.",
+                error="Access Denied",
             )
 
         if not abs_path.exists() or not abs_path.is_file():
@@ -115,7 +115,7 @@ class SandboxExecutor(BaseInstrument):
 
         # 2. Выполнение на ХОСТЕ (God Mode)
         if run_on_host:
-            if settings.system.flags.madness_level != 3:
+            if settings.interfaces.vfs.madness_level != 3:
                 system_logger.warning(
                     "[Executor] Отклонена попытка выполнения кода на хосте. Требуется God Mode."
                 )
