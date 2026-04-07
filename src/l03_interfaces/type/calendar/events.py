@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class CalendarEvents:
-    def __init__(self, event_bus: EventBus, client: CalendarClient):
+    def __init__(self, event_bus: EventBus, client: 'CalendarClient'):
         self.event_bus = event_bus
         self.client = client
         self.crud = client.crud

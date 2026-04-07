@@ -46,6 +46,7 @@ rhythms:
 memory:
   # Векторная база данных
   similarity_threshold: 0.43 # Порог релевантности для поиска семантических совпадений в векторной базе данных (0.0-1.0, в ChromaDB чем ниже - тем строже отбор)
+  embedding_model: "BAAI/bge-m3"
   vector_rag:
     max_results: 5
 

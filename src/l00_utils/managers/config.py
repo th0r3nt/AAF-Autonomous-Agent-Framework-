@@ -57,6 +57,7 @@ class GraphRAGConfig(BaseModel):
 
 class MemoryConfig(BaseModel):
     similarity_threshold: float
+    embedding_model: str
     vector_rag: VectorRAGConfig
     graph_rag: GraphRAGConfig
     reranker_model: str
@@ -184,14 +185,14 @@ INTERFACES_PATH = project_root / "agent" / "config" / "interfaces.yaml"
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
 # Базы данных
-GRAPH_DB_PATH = str(project_root / "agent" / "data" / "kuzu_db")
-CHROMA_DB_DIR = str(project_root / "agent" / "data" / "chroma_db")
+GRAPH_DB_PATH = str(project_root / "agent" / "data" / "kuzu_db" / "graph")
+CHROMA_DB_DIR = str(project_root / "agent" / "data" / "chroma_db" / "vector")
 
 # Дефолтный fallback на SQLite, если в .env не указали базу
 SQL_DB_URL = os.getenv("SQL_DB_URL", "sqlite+aiosqlite:///agent/data/agent_db.sqlite")
 
 # Локальные модели
-EMBEDDING_MODEL_PATH = str(project_root / "src" / "l00_utils" / "local" / "embedding")
+EMBEDDINGS_BASE_DIR = str(project_root / "src" / "l00_utils" / "local" / "embeddings")
 
 
 def load_settings() -> Settings:
@@ -232,5 +233,5 @@ def load_settings() -> Settings:
 settings = load_settings()
 
 # Теперь, когда настройки успешно загружены, мы говорим логгеру, какой уровень использовать (чтобы избежать циклической зависимости)
-from src.l00_utils.managers.logger import update_log_level
+from src.l00_utils.managers.logger import update_log_level  # noqa: E402
 update_log_level(settings.system.logging_level)

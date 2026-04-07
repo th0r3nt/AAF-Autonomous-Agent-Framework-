@@ -12,11 +12,7 @@ from src.l03_interfaces.type.base import BaseClient
 # Импорты всех клиентов для реестра интерфейсов
 from src.l03_interfaces.type.system.client import SystemClient
 from src.l03_interfaces.type.vfs.client import VFSClient
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from src.l03_interfaces.type.calendar.client import CalendarClient
-    
+from src.l03_interfaces.type.calendar.client import CalendarClient
 from src.l03_interfaces.type.email.client import EmailClient
 from src.l03_interfaces.type.geo.client import GeoClient
 from src.l03_interfaces.type.api.github.client import GithubClient

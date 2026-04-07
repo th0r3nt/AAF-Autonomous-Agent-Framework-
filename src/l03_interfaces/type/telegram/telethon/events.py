@@ -4,10 +4,13 @@ from telethon import events, utils
 from telethon.tl.types import UpdateMessageReactions, User, Chat, Channel
 from typing import List
 
-from src.l03_interfaces.type.telegram.telethon.client import TelethonClient
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.event.registry import Events
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.telegram.telethon.client import TelethonClient
 
 
 class TelethonEvents:
@@ -16,7 +19,7 @@ class TelethonEvents:
     Инкапсулирует кэш топиков и логику парсинга сообщений.
     """
 
-    def __init__(self, event_bus: EventBus, client: TelethonClient, ignored_users: List[int]):
+    def __init__(self, event_bus: EventBus, client: 'TelethonClient', ignored_users: List[int]):
         self.event_bus = event_bus
         self.client = client
         self.ignored_users = ignored_users

@@ -87,7 +87,7 @@ def run_interactive_wizard() -> bool:
         # : <12 означает выравнивание текста по левому краю шириной ровно 12 символов
         vfs_icon = f"{vfs_emoji} {vfs_status: <12}" 
         
-        choices.append(questionary.Choice(title=f"{vfs_icon} VFS (Файловая система) [Lvl: {vfs_level}]", value="vfs_toggle"))
+        choices.append(questionary.Choice(title=f"{vfs_icon} VFS [Lvl: {vfs_level}]", value="vfs_toggle"))
         
         # Обрабатываем остальные модули
         for name, path_keys, env_id in INTERFACES_MAP:
@@ -107,7 +107,7 @@ def run_interactive_wizard() -> bool:
                     status_str = "[READ-ONLY]"
                     emoji = "🟡"
                 else:
-                    status_str = " [NO KEYS]"
+                    status_str = "[NO KEYS]"
                     emoji = "⚠️"
 
             # То же самое выравнивание до 12 символов
@@ -123,7 +123,7 @@ def run_interactive_wizard() -> bool:
 
         # 2. Запрашиваем действие у пользователя
         selected = questionary.select(
-            "Навигация: ↑/↓ | Выбор: Enter",
+            "Навигация: ↑/↓ | Выбор: Enter\n",
             choices=choices,
             use_indicator=True
         ).ask()

@@ -5,11 +5,14 @@ from cachetools import LRUCache
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.event.registry import Events
-from src.l03_interfaces.type.api.reddit.client import RedditClient
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.api.reddit.client import RedditClient
 
 
 class RedditEvents:
-    def __init__(self, event_bus: EventBus, client: RedditClient, polling_interval: int = 180):
+    def __init__(self, event_bus: EventBus, client: 'RedditClient', polling_interval: int = 180):
         self.event_bus = event_bus
         self.client = client
         self.polling_interval = polling_interval

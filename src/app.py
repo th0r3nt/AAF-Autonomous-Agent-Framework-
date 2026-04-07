@@ -9,7 +9,7 @@ from src.l00_utils.managers.config import (
     GRAPH_DB_PATH,
     SQL_DB_URL,
     CHROMA_DB_DIR,
-    EMBEDDING_MODEL_PATH,
+    EMBEDDINGS_BASE_DIR,
     CONFIG_PATH,
     INTERFACES_PATH,
     RABBITMQ_URL,
@@ -84,10 +84,10 @@ class AgentSystem:
 
     async def setup_databases(self) -> None:
         # Базы данных
-        self.graph_db = GraphDB(self.event_bus, graph_db_path=GRAPH_DB_PATH)
-        self.sql_db = SQLDB(self.event_bus, sql_db_url=SQL_DB_URL)
+        self.graph_db = GraphDB(self.event_bus, db_path=GRAPH_DB_PATH)
+        self.sql_db = SQLDB(self.event_bus, db_url=SQL_DB_URL)
         self.vector_db = VectorDB(
-            chroma_db_path=CHROMA_DB_DIR, embedding_model_path=EMBEDDING_MODEL_PATH
+            chroma_db_path=CHROMA_DB_DIR, embedding_model_path=EMBEDDINGS_BASE_DIR
         )
 
         # Инициализируем

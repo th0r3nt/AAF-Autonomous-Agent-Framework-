@@ -7,11 +7,13 @@ from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.event.registry import Events
 from src.l00_utils._tools import clean_html_to_md
 
-from src.l03_interfaces.type.email.client import EmailClient
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.email.client import EmailClient
 
 
 class EmailEvents:
-    def __init__(self, event_bus: EventBus, client: EmailClient):
+    def __init__(self, event_bus: EventBus, client: 'EmailClient'):
         self.event_bus = event_bus
         self.client = client
 
@@ -32,7 +34,9 @@ class EmailEvents:
                 # Ищем непрочитанные письма (UNSEEN).
                 # mark_seen=False означает, что мы не помечаем их прочитанными на сервере,
                 # чтобы агент мог потом сам это сделать через инструменты, если захочет
-                for msg in mailbox.fetch(A(seen=False), mark_seen=False, limit=10, reverse=True):
+                for msg in mailbox.fetch(
+                    A(seen=False), mark_seen=False, limit=10, reverse=True
+                ):
                     if msg.uid in self.PROCESSED_EMAILS:
                         continue
 
@@ -49,7 +53,9 @@ class EmailEvents:
 
                     # Собираем инфу о вложениях (названия файлов)
                     attachments = [att.filename for att in msg.attachments if att.filename]
-                    attach_str = f"\n[Вложения: {', '.join(attachments)}]" if attachments else ""
+                    attach_str = (
+                        f"\n[Вложения: {', '.join(attachments)}]" if attachments else ""
+                    )
 
                     new_emails.append(
                         {
@@ -71,7 +77,9 @@ class EmailEvents:
         Бесконечный цикл поллинга новых писем.
         Проверяем почту раз в 3 минуты (180 секунд).
         """
-        system_logger.info(f"[Email] Запуск фонового поллинга (интервал: {interval_seconds} сек.)")
+        system_logger.info(
+            f"[Email] Запуск фонового поллинга (интервал: {interval_seconds} сек.)"
+        )
 
         if not await self.client.check_connection():
             system_logger.warning("[Email] Агент не авторизован. Поллинг отменен.")
@@ -87,7 +95,9 @@ class EmailEvents:
                         f"[Email] Новое письмо от {email['sender']}: {email['subject']}"
                     )
 
-                    log_str = f"[{email['date']}] letter from {email['sender']}: {email['subject']}"
+                    log_str = (
+                        f"[{email['date']}] letter from {email['sender']}: {email['subject']}"
+                    )
                     self.client.recent_activity.append(log_str)
 
                     await self.event_bus.publish(

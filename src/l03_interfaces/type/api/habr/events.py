@@ -8,11 +8,14 @@ from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.managers.config import settings
 from src.l00_utils.event.registry import Events
 from src.l00_utils._tools import clean_html_to_md
-from src.l03_interfaces.type.api.habr.client import HabrClient
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.api.habr.client import HabrClient
 
 
 class HabrEvents:
-    def __init__(self, event_bus: EventBus, client: HabrClient, polling_interval: int = 600):
+    def __init__(self, event_bus: EventBus, client: 'HabrClient', polling_interval: int = 600):
         self.event_bus = event_bus
         self.client = client
         self.polling_interval = polling_interval  # 10 минут по умолчанию, бережем API

@@ -2,17 +2,20 @@ from aiogram import Router
 from aiogram.types import Message, CallbackQuery
 import datetime
 
-from src.l03_interfaces.type.telegram.aiogram.client import AiogramClient
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.event.registry import Events
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.l03_interfaces.type.telegram.aiogram.client import AiogramClient
 
 # Создаем роутер (маршрутизатор), который будет обрабатывать все входящие обновления
 bot_router = Router()
 
 
 class AiogramEvents:
-    def __init__(self, event_bus: EventBus, client: AiogramClient):
+    def __init__(self, event_bus: EventBus, client: 'AiogramClient'):
         self.event_bus = event_bus
         self.dp = client.dp
         self.client = client
