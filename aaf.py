@@ -37,6 +37,20 @@ def open_logs_in_new_window():
     curr_os = platform.system()
 
     try:
+
+        # Проверяем, существует ли вообще контейнер aaf_core
+        check = subprocess.run(
+            ["docker", "ps", "-a", "-q", "-f", "name=aaf_core"], 
+            stdout=subprocess.PIPE, 
+            text=True
+        )
+        
+        if not check.stdout.strip():
+            ui.error("Контейнер 'aaf_core' не найден. Сейчас активирован в Dev-режим/система еще не стартовала.")
+            return
+
+        cmd = "docker logs -f aaf_core"
+
         if curr_os == "Windows":
             # /k оставляет окно открытым даже при прерывании
             subprocess.Popen(f'start cmd.exe /k "{cmd}"', shell=True)

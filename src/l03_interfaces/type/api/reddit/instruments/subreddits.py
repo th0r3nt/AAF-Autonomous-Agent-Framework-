@@ -16,7 +16,7 @@ class RedditSubreddits(BaseInstrument):
 
     def __init__(self, client: "RedditClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
-        self.api = client.transport  # TODO: исправить
+        self.api = client
 
     def _clean_sub_name(self, name: str) -> str:
         """

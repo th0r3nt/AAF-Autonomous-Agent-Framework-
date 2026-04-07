@@ -141,7 +141,7 @@ class AgentTickCRUD:
             if t.status == "processing":
                 continue
 
-            lines.append(f"### Tick #{t.id} [{t.status.upper()}]")
+            lines.append(f"\n### Tick #{t.id} [{t.status.upper()}]")
 
             if t.error_message:
                 err = (
@@ -182,7 +182,7 @@ class AgentTickCRUD:
 
                     formatted_calls.append(f"{name}({', '.join(param_parts)})")
 
-                lines.append(f"*Action*: {', '.join(formatted_calls)} \n---")
+                lines.append(f"*Action*: {', '.join(formatted_calls)} \n")
 
             if t.function_results:
                 res_str = json.dumps(t.function_results, ensure_ascii=False)

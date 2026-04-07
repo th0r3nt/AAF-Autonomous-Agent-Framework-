@@ -1,5 +1,6 @@
 import smtplib
 import asyncio
+import datetime
 from pathlib import Path
 from email.message import EmailMessage
 from imap_tools import MailBox, A
@@ -19,6 +20,7 @@ class EmailSender(BaseInstrument):
 
     def __init__(self, client: 'EmailClient', sandbox_dir: str):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
+        self.agent_client = client
 
         self.smtp_server = client.smtp_server
         self.smtp_port = client.smtp_port
@@ -143,6 +145,11 @@ class EmailSender(BaseInstrument):
             server.login(self.user, self.password)
             server.send_message(msg)
             server.quit()
+
+            # Логгирование
+            time_str = datetime.datetime.now().strftime("%H:%M")
+            clean_subj = subject.replace('\n', ' ')
+            self.agent_client.recent_activity.append(f"[{time_str}] Agent sent email to {msg['To']}: {clean_subj[:300]}...")
 
             action = "Ответ на письмо" if reply_to_uid else "Письмо"
             attach_info = f" (Вложений: {len(attachments)})" if attachments else ""

@@ -1,3 +1,4 @@
+import datetime
 from typing import TYPE_CHECKING, Literal
 
 from src.l00_utils.managers.logger import system_logger
@@ -16,7 +17,8 @@ class RedditPosts(BaseInstrument):
 
     def __init__(self, client: 'RedditClient'):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
-        self.api = client.transport # TODO заменить, будет ошибка (transport теперь не существует)
+        self.agent_client = client
+        self.api = client
 
     def _ensure_post_fullname(self, post_id: str) -> str:
         """Вспомогательный метод. Убеждается, что ID поста имеет префикс 't3_'."""
@@ -130,6 +132,9 @@ class RedditPosts(BaseInstrument):
                 new_post_data = data.get("json", {}).get("data", {})
                 new_id = new_post_data.get("id", "unknown")
                 url = new_post_data.get("url", "unknown")
+
+                time_str = datetime.datetime.now().strftime("%H:%M")
+                self.agent_client.recent_activity.append(f"[{time_str}] Agent posted in r/{subreddit}: {title[:200]}...")
 
                 system_logger.info(f"[Reddit] Создан пост в r/{subreddit} (ID: {new_id})")
                 return ToolResult.ok(

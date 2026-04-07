@@ -1,6 +1,7 @@
-from src.l00_utils.managers.logger import system_logger
-
+import datetime
 from typing import TYPE_CHECKING, Literal
+
+from src.l00_utils.managers.logger import system_logger
 
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.reddit.client import RedditClient
@@ -16,7 +17,8 @@ class RedditComments(BaseInstrument):
 
     def __init__(self, client: "RedditClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
-        self.api = client.transport  # TODO: trasport удален, исправить
+        self.agent_client = client     # Для логов
+        self.api = client              
 
     def _ensure_prefix(self, item_id: str, prefix: str) -> str:
         """
@@ -104,6 +106,11 @@ class RedditComments(BaseInstrument):
                 system_logger.info(
                     f"[Reddit] Успешный ответ на {parent_fullname}. ID: {new_id}"
                 )
+
+                time_str = datetime.datetime.now().strftime("%H:%M")
+                clean_text = text.replace('\n', ' ')
+                self.agent_client.recent_activity.append(f"[{time_str}] Agent replied to {parent_fullname}: {clean_text[:100]}...")
+
                 return ToolResult.ok(
                     msg=f"Комментарий успешно опубликован. Ваш ID: {new_id}",
                     data=new_comment_data,
@@ -210,6 +217,8 @@ class RedditComments(BaseInstrument):
             response = await self.api.request("POST", "api/del", data=payload)
 
             if response.status_code == 200:
+                time_str = datetime.datetime.now().strftime("%H:%M")
+                self.agent_client.recent_activity.append(f"[{time_str}] Agent deleted comment {comment_id}")
                 system_logger.info(f"[Reddit] Комментарий {comment_id} удален агентом.")
                 return ToolResult.ok(msg=f"Комментарий {comment_id} успешно удален.")
 

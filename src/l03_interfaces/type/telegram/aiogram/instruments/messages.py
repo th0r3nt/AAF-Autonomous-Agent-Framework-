@@ -1,6 +1,8 @@
 from aiogram.exceptions import TelegramAPIError
+import datetime  # <--- Добавили импорт
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.telegram.aiogram.client import AiogramClient
 from src.l00_utils.managers.logger import system_logger
@@ -16,8 +18,9 @@ from src.l04_agency.skills.registry import skill
 class AiogramMessages(BaseInstrument):
     """Сервис для отправки и управления сообщениями через Bot API (Aiogram)."""
 
-    def __init__(self, client: 'AiogramClient'):
-        super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
+    def __init__(self, client: "AiogramClient"):
+        super().__init__()
+        self.client = client  # <--- Сохраняем ссылку на клиент, чтобы писать в recent_activity
         self.bot = client.bot
 
     @skill()
@@ -42,6 +45,13 @@ class AiogramMessages(BaseInstrument):
                 disable_notification=silent,
                 reply_markup=reply_markup,
             )
+
+            # Запись ответа агента в историю интерфейса
+            time_str = datetime.datetime.now().strftime("%H:%M")
+            clean_text = text.replace("\n", " ")
+            log_str = f"[{time_str}] Agent replied to {chat_id}: {clean_text[:100]}..."
+            self.client.recent_activity.append(log_str)
+
             return ToolResult.ok(
                 msg=f"Сообщение успешно отправлено через бота. ID: {msg.message_id}",
                 data=msg,
@@ -61,7 +71,6 @@ class AiogramMessages(BaseInstrument):
     ) -> ToolResult:
         """
         Редактирует уже отправленное сообщение (изменяет текст или кнопки).
-        Очень полезно для создания динамических меню (когда агент обновляет статус задачи прямо в сообщении).
         """
         try:
             reply_markup = AiogramKeyboards.build_inline_keyboard(inline_buttons)
@@ -72,13 +81,22 @@ class AiogramMessages(BaseInstrument):
                 text=new_text,
                 reply_markup=reply_markup,
             )
+
+            # Запись редактирования
+            time_str = datetime.datetime.now().strftime("%H:%M")
+            clean_text = new_text.replace("\n", " ")
+            log_str = f"[{time_str}] Agent edited msg {message_id}: {clean_text[:100]}..."
+            self.client.recent_activity.append(log_str)
+
             return ToolResult.ok(
                 msg=f"Сообщение ID {message_id} успешно отредактировано.",
                 data={"message_id": message_id},
             )
 
         except TelegramAPIError as e:
-            system_logger.error(f"[Telegram Bot] Ошибка редактирования сообщения {message_id}: {e}")
+            system_logger.error(
+                f"[Telegram Bot] Ошибка редактирования сообщения {message_id}: {e}"
+            )
             return ToolResult.fail(msg=f"Ошибка редактирования сообщения: {e}", error=str(e))
 
     @skill()
@@ -88,6 +106,11 @@ class AiogramMessages(BaseInstrument):
         """
         try:
             await self.bot.delete_message(chat_id=chat_id, message_id=message_id)
+
+            # Запись удаления
+            time_str = datetime.datetime.now().strftime("%H:%M")
+            self.client.recent_activity.append(f"[{time_str}] Agent deleted msg {message_id}")
+
             return ToolResult.ok(
                 msg=f"Сообщение ID {message_id} успешно удалено.",
                 data={"message_id": message_id},
@@ -107,10 +130,18 @@ class AiogramMessages(BaseInstrument):
             msg_id = await self.bot.copy_message(
                 chat_id=chat_id, from_chat_id=from_chat_id, message_id=message_id
             )
+
+            time_str = datetime.datetime.now().strftime("%H:%M")
+            self.client.recent_activity.append(
+                f"[{time_str}] Agent copied msg {message_id} to {chat_id}"
+            )
+
             return ToolResult.ok(
                 msg=f"Сообщение успешно скопировано. Новый ID: {msg_id.message_id}",
                 data=msg_id,
             )
         except TelegramAPIError as e:
-            system_logger.error(f"[Telegram Bot] Ошибка копирования сообщения {message_id}: {e}")
+            system_logger.error(
+                f"[Telegram Bot] Ошибка копирования сообщения {message_id}: {e}"
+            )
             return ToolResult.fail(msg=f"Ошибка при копировании сообщения: {e}", error=str(e))
