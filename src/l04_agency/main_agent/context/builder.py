@@ -147,15 +147,15 @@ class ContextBuilder:
 
         # Красивые имена для вывода в консоль LLM
         display_names = {
-            "telegram bot": "Telegram Bot",
-            "telegram userbot": "Telegram Userbot",
+            "bot": "Telegram Bot",
+            "userbot": "Telegram Userbot",
             "github": "GitHub",
             "habr": "Habr",
             "reddit": "Reddit",
             "email": "Email",
             "browser": "Web Browser",
             "http": "Web HTTP",
-            "web search": "Web Search",
+            "search": "Web Search",
             "calendar": "Local Calendar",
             "system": "System",
             "vfs": "VFS",

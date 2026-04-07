@@ -30,10 +30,11 @@ class HabrNews(BaseInstrument):
                 "/articles/",
                 params={
                     "query": query,
-                    "news": "true",  # Хабр ждет строку 'true'
+                    "news": "true",
                     "hl": "ru",
                     "fl": "ru",
                     "page": 1,
+                    "period": "all"
                 },
             )
 
@@ -53,7 +54,7 @@ class HabrNews(BaseInstrument):
                 for a_id in article_ids[:limit]:
                     article = article_refs.get(str(a_id), {})
 
-                    title = clean_html_to_md(data.get("titleHtml", "Без названия"))
+                    title = clean_html_to_md(article.get("titleHtml", "Без названия"))
                     author = article.get("author", {}).get("alias", "Unknown")
                     score = article.get("statistics", {}).get("score", 0)
                     views = article.get("statistics", {}).get("readingCount", 0)
@@ -88,6 +89,7 @@ class HabrNews(BaseInstrument):
                     "hl": "ru",
                     "fl": "ru",
                     "page": 1,
+                    "period": "daily"
                 },
             )
 

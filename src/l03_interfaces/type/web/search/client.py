@@ -18,7 +18,7 @@ load_dotenv()
 class SearchClient(BaseClient):
     """Асинхронный клиент для поисковых сервисов."""
 
-    name = "web search"  # Имя для маппинга
+    name = "search"  # Имя для маппинга
 
     def __init__(self):
         self.google_api_key = os.getenv("GOOGLE_API_KEY")

@@ -30,7 +30,8 @@ class HabrArticles(BaseInstrument):
         try:
             # Эндпоинт поиска Хабра
             response = await self.http.get(
-                "/articles/", params={"query": query, "hl": "ru", "fl": "ru", "page": 1}
+                "/articles/",
+                params={"query": query, "hl": "ru", "fl": "ru", "page": 1},
             )
 
             if response.status_code == 200:
@@ -49,7 +50,7 @@ class HabrArticles(BaseInstrument):
                 for a_id in article_ids[:limit]:
                     article = article_refs.get(str(a_id), {})
 
-                    title = clean_html_to_md(data.get("titleHtml", "Без названия"))
+                    title = clean_html_to_md(article.get("titleHtml", "Без названия"))
                     author = article.get("author", {}).get("alias", "Unknown")
                     score = article.get("statistics", {}).get("score", 0)
                     views = article.get("statistics", {}).get("readingCount", 0)
@@ -149,12 +150,9 @@ class HabrArticles(BaseInstrument):
                 "hl": "ru",
                 "fl": "ru",
                 "page": 1,
+                "period": "daily"
             }
-            # Хабр ругается 422 ошибкой, если при сортировке по рейтингу нет периода
-            if sort_by == "rating":
-                params["period"] = "daily"
 
-            # Слэш обязателен
             response = await self.http.get("/articles/", params=params)
 
             if response.status_code == 200:
