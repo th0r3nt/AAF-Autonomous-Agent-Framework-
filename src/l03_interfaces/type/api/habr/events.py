@@ -45,7 +45,7 @@ class HabrEvents:
             try:
                 # Запрашиваем ленту хаба, сортировка по дате (самые свежие)
                 response = await self.client.client.get(
-                    "/articles",
+                    "/articles/",
                     params={"hub": hub, "sort": "date", "hl": "ru", "fl": "ru", "page": 1},
                     headers=headers,
                 )

@@ -32,10 +32,12 @@ class Orchestrator:
         self.agency_state = agency_state
 
         self.mind_lock = asyncio.Lock()
+        self._is_waking_up = False
 
     def is_busy(self) -> bool:
-        """Позволяет Диспетчеру узнать, спит ли сейчас агент."""
-        return self.mind_lock.locked()
+        """Позволяет Диспетчеру узнать, занят ли сейчас агент."""
+        # Агент занят либо когда думает (Lock), либо когда только-только просыпается
+        return self.mind_lock.locked() or self._is_waking_up
 
     async def wake_up_neo(self, envelope: EventEnvelope, cycle_type: str) -> bool:
         """
@@ -43,6 +45,8 @@ class Orchestrator:
         Запускает цикл мышления агента.
         """
         temperature = self.state.settings_state.get_state()["llm"]["temperature"]
+
+        self._is_waking_up = False 
 
         async with self.mind_lock:
             transaction_id = envelope.event_id

@@ -8,12 +8,15 @@ from src.l00_utils.managers.event_bus import EventBus
 from src.l00_utils.event.registry import Events
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.github.client import GithubClient
 
 
 class GitHubEvents:
-    def __init__(self, event_bus: EventBus, client: 'GithubClient', polling_interval: int = 180):
+    def __init__(
+        self, event_bus: EventBus, client: "GithubClient", polling_interval: int = 180
+    ):
         self.event_bus = event_bus
         self.client = client
         self.polling_interval = polling_interval
@@ -126,19 +129,35 @@ class GitHubEvents:
         """
         Бесконечный цикл поллинга, который запускается как фоновая задача.
         """
+        # 1. Если токена нет изначально, поллинг личных уведомлений бессмысленен
+        if not self.client.token:
+            system_logger.info(
+                "[GitHub] Токен отсутствует. Фоновый поллинг уведомлений отключен (режим Read-Only)."
+            )
+            return
+
         system_logger.info(
             f"[GitHub] Запуск фонового поллинга (интервал: {self.polling_interval} сек.)"
         )
 
-        # Сначала проверяем, жив ли токен
+        # Проверяем, жив ли токен в данный момент
         is_alive = await self.client.check_connection()
         if not is_alive:
             system_logger.error("[GitHub] Агент не авторизован. Поллинг отменен.")
             return
 
+        # Основной цикл
         while True:
             try:
                 await self._fetch_notifications()
+
+            except ValueError as ve:
+                # Если функция _fetch_notifications выбросила именно ошибку токена
+                if "Invalid GitHub Token" in str(ve):
+                    # Прерываем бесконечный цикл, чтобы не спамить логи каждые 3 минуты
+                    break
+                system_logger.error(f"[GitHub Polling] Ошибка в цикле: {ve}")
+
             except Exception as e:
                 system_logger.error(f"[GitHub Polling] Критическая ошибка в цикле: {e}")
 

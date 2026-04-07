@@ -28,7 +28,8 @@ class EventDispatcher:
 
     async def handle_rabbitmq_event(self, envelope: EventEnvelope) -> bool:
         """
-        Главный коллбэк для Consumer'а RabbitMQ. Возвращает True (событие обработано) или False/выкидывает Exception (сбой).
+        Главный коллбэк для Consumer'а RabbitMQ.
+        Возвращает True (событие обработано) или False (сбой).
         """
         routing_key = envelope.routing_key
         level = routing_key.split(".")[-1]  # critical, high, medium, low, background
@@ -42,7 +43,7 @@ class EventDispatcher:
         # INTERRUPT BUFFER
         # Если агент занят > кладем в буфер прерывания
         if self.orchestrator.is_busy():
-            # Если это таймер от Heartbeat - не просто откладываем, а ставим в очередь ожидания, чтобы он сработал сразу после текущего цикла
+            # Если это таймер от Heartbeat - ставим в очередь ожидания
             if is_timer:
                 asyncio.create_task(self.orchestrator.wake_up_neo(envelope, cycle_type))
                 system_logger.info(
@@ -53,7 +54,7 @@ class EventDispatcher:
             # Иначе это реальное событие (ТГ, GitHub и тд), кидаем в буфер прерываний
             self.state.agency_state.interrupt_buffer.append(envelope)
             system_logger.info(
-                "[Event Dispatcher] Агент занят. Событие добавлено в Interrupt Buffer."
+                f"[Event Dispatcher] Агент занят. Событие '{routing_key}' добавлено в Interrupt Buffer."
             )
             return True
 
@@ -64,13 +65,20 @@ class EventDispatcher:
             self.heartbeat.reduce_proactivity_timer(level)
 
             system_logger.info(
-                f"[Event Dispatcher] Фоновое событие ({level}) отложено в Sensory Buffer."
+                f"[Event Dispatcher] Фоновое событие ({level}) отложено в фоновую очередь."
             )
             return True
 
-        # Event-Driven | Proactivity | Consolidation
-        cycle_type = self._determine_cycle(envelope)
-        return await self.orchestrator.wake_up_neo(envelope, cycle_type)
+        # ВАЖНО: Синхронно бронируем агента, чтобы события, прилетевшие через
+        # 1 миллисекунду, гарантированно ушли в Interrupt Buffer
+        self.orchestrator._is_waking_up = True
+
+        # Отправляем LLM думать в бэкграунд
+        asyncio.create_task(self.orchestrator.wake_up_neo(envelope, cycle_type))
+
+        # Мгновенно отдаем True консьюмеру, чтобы RabbitMQ сделал ACK
+        # и продолжил бесперебойно слушать очередь в ожидании прерываний
+        return True
 
     def _determine_cycle(self, envelope: EventEnvelope) -> str:
         """Определяет тип цикла мышления на основе ключа маршрутизации."""

@@ -30,7 +30,7 @@ ACTION_SCHEMA = [
                                 "parameters": {
                                     "type": "object",
                                     "description": "Аргументы функции в формате ключ-значение.",
-                                    "additionalProperties": True
+                                    "additionalProperties": False
                                 }
                             },
                             "required": ["tool_name", "parameters"]

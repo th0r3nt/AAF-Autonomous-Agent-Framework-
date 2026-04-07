@@ -39,7 +39,7 @@ class HabrClient(BaseClient):
         else:
             system_logger.info("[Habr] Авторизационные данные найдены.")
 
-        self.base_url = "https://habr.com/api/v2"
+        self.base_url = "https://habr.com/kek/v2"
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
             "Accept": "application/json, text/plain, */*",
@@ -98,7 +98,7 @@ class HabrClient(BaseClient):
             
             # Анонимная проверка (Read-Only)
             response = await self.client.get(
-                "/articles", params={"hl": "ru", "fl": "ru", "page": 1}
+                "/articles/", params={"hl": "ru", "fl": "ru", "page": 1}
             )
             if response.status_code == 200:
                 system_logger.info("[Habr] Анонимное подключение к API успешно.")

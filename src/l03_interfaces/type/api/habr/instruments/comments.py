@@ -80,7 +80,7 @@ class HabrComments(BaseInstrument):
         try:
             # Эндпоинт для получения комментов (API v2)
             response = await self.http.get(
-                f"/articles/{article_id}/comments", params={"hl": "ru", "fl": "ru"}
+                f"/articles/{article_id}/comments/", params={"hl": "ru", "fl": "ru"}
             )
 
             if response.status_code == 200:

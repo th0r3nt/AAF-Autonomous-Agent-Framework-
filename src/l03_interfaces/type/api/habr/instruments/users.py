@@ -29,7 +29,7 @@ class HabrUsers(BaseInstrument):
 
         try:
             # Эндпоинт Хабра для получения профиля (API v2)
-            response = await self.http.get(f"/users/{username}", params={"hl": "ru", "fl": "ru"})
+            response = await self.http.get(f"/users/{username}/card", params={"hl": "ru", "fl": "ru"})
 
             if response.status_code == 200:
                 data = response.json()

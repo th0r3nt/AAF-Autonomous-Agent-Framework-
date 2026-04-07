@@ -30,7 +30,7 @@ class HabrArticles(BaseInstrument):
         try:
             # Эндпоинт поиска Хабра
             response = await self.http.get(
-                "/articles", params={"query": query, "hl": "ru", "fl": "ru", "page": 1}
+                "/articles/", params={"query": query, "hl": "ru", "fl": "ru", "page": 1}
             )
 
             if response.status_code == 200:
@@ -143,16 +143,19 @@ class HabrArticles(BaseInstrument):
         Получает последние статьи из конкретного хаба.
         """
         try:
-            response = await self.http.get(
-                "/articles",
-                params={
-                    "hub": hub_alias,
-                    "sort": sort_by,  # 'data', 'rating'
-                    "hl": "ru",
-                    "fl": "ru",
-                    "page": 1,
-                },
-            )
+            params = {
+                "hub": hub_alias,
+                "sort": sort_by,
+                "hl": "ru",
+                "fl": "ru",
+                "page": 1,
+            }
+            # Хабр ругается 422 ошибкой, если при сортировке по рейтингу нет периода
+            if sort_by == "rating":
+                params["period"] = "daily"
+
+            # Слэш обязателен
+            response = await self.http.get("/articles/", params=params)
 
             if response.status_code == 200:
                 data = response.json()

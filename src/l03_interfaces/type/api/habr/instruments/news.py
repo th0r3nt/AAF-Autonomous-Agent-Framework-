@@ -2,6 +2,7 @@ import httpx
 from src.l00_utils.managers.logger import system_logger
 from src.l00_utils._tools import clean_html_to_md
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from src.l03_interfaces.type.api.habr.client import HabrClient
 from src.l03_interfaces.models import ToolResult
@@ -15,7 +16,7 @@ class HabrNews(BaseInstrument):
     Сервис для поиска и чтения новостей на Хабре.
     """
 
-    def __init__(self, agent_client: 'HabrClient'):
+    def __init__(self, agent_client: "HabrClient"):
         super().__init__()  # BaseInstrument пробежится по методам ниже и закинет все @skill в ToolRegistry
         self.http = agent_client.client
 
@@ -26,10 +27,10 @@ class HabrNews(BaseInstrument):
         """
         try:
             response = await self.http.get(
-                "/articles",
+                "/articles/",
                 params={
                     "query": query,
-                    "type": "news",  # Фильтруем именно новости
+                    "news": "true",  # Хабр ждет строку 'true'
                     "hl": "ru",
                     "fl": "ru",
                     "page": 1,
@@ -79,12 +80,11 @@ class HabrNews(BaseInstrument):
         Используем хаб 'news' для получения актуальной ленты.
         """
         try:
-            # Используем хаб 'news' для получения общей ленты новостей
             response = await self.http.get(
-                "/articles",
+                "/articles/",
                 params={
-                    "hub": "news",  # Фильтруем по хабу 'news'
-                    "sort": "date",  # Сортируем по дате добавления
+                    "news": "true",
+                    "sort": "date",
                     "hl": "ru",
                     "fl": "ru",
                     "page": 1,
@@ -120,4 +120,6 @@ class HabrNews(BaseInstrument):
 
         except httpx.RequestError as e:
             system_logger.error(f"[Habr] Ошибка сети при получении ленты новостей: {e}")
-            return ToolResult.fail(msg=f"Ошибка сети при получении новостей: {e}", error=str(e))
+            return ToolResult.fail(
+                msg=f"Ошибка сети при получении новостей: {e}", error=str(e)
+            )

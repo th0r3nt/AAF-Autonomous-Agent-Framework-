@@ -8,9 +8,9 @@ llm:
   - gemini-3.1-pro-preview
   - gemini-3-flash-preview
   - gemini-3.1-flash-lite-preview
+  - gemma-4-31b-it
   - gpt-5.4
   - claude-opus-4-6
-  - gemma-4-31b-it
   # ...можно добавить свои
 
   temperature: 0.7
@@ -21,14 +21,14 @@ llm:
     # Чем больше число, тем больше предыдущих тиков будет учитываться при принятии решений
 
     event_driven: 
-      ticks: 30 # Tick = один вызов модели "Наблюдение > Мысли > Действие > Результат" 
+      ticks: 20 # Tick = один вызов модели "Наблюдение > Мысли > Действие > Результат" 
       # Например, обычно один цикл проактивности состоит в среднем из 1-8 тиков (вызовов модели LLM)
 
     proactivity: 
-      ticks: 35 
+      ticks: 25 
 
     consolidation: 
-      ticks: 40
+      ticks: 30
 
   is_main_model_multimodal: true # true - если основная модель агента мультимодальна
   multimodal_model: gemini-3.1-flash-lite-preview # Если is_main_model_multimodal: false - будет использоваться эта для обработки изображений/видео
